@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>EchoZone</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+
+body{
+font-family:'Poppins',sans-serif;
+background:black;
+background:linear-gradient(135deg,#000000,#111111,#1a1a1a);
+color:white;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
+margin:0;
+}
+
+.container{
+width:520px;
+background:#0f0f0f;
+padding:35px;
+border-radius:14px;
+box-shadow:0 0 30px rgba(255,215,0,0.25);
+border:1px solid rgba(255,215,0,0.2);
+}
+
+h1{
+text-align:center;
+color:#FFD700;
+margin-bottom:10px;
+letter-spacing:1px;
+}
+
+.subtitle{
+text-align:center;
+color:#bbb;
+margin-bottom:25px;
+}
+
+input{
+width:100%;
+padding:12px;
+margin-top:10px;
+border-radius:6px;
+border:1px solid #333;
+background:#111;
+color:white;
+font-size:14px;
+outline:none;
+}
+
+input:focus{
+border:1px solid #FFD700;
+}
+
+button{
+width:100%;
+margin-top:18px;
+padding:13px;
+background:#FFD700;
+color:black;
+font-weight:600;
+border:none;
+border-radius:6px;
+cursor:pointer;
+font-size:15px;
+transition:0.3s;
+}
+
+button:hover{
+background:#e6c200;
+}
+
+.posts-title{
+margin-top:25px;
+color:#FFD700;
+}
+
+#posts{
+margin-top:15px;
+max-height:280px;
+overflow-y:auto;
+}
+
+.post{
+background:#151515;
+border:1px solid #333;
+padding:12px;
+border-radius:6px;
+margin-bottom:12px;
+}
+
+.user{
+color:#FFD700;
+font-weight:600;
+}
+
+.location{
+font-size:12px;
+color:#aaa;
+}
+
+hr{
+border:0;
+border-top:1px solid #333;
+margin-top:10px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>EchoZone</h1>
+<p class="subtitle">Anonymous Local Conversations</p>
+
+<input id="text" placeholder="Ask something nearby...">
+
+<input id="location" placeholder="Enter location">
+
+<button onclick="createPost()">Post</button>
+
+<h3 class="posts-title">Nearby Posts</h3>
+
+<div id="posts"></div>
+
+</div>
+
+<script>
+
+async function createPost(){
+
+let text=document.getElementById("text").value;
+let location=document.getElementById("location").value;
+
+let user="User"+Math.floor(Math.random()*10000);
+
+await fetch("http://localhost:3000/posts",{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({
+text:text,
+location:location,
+user:user
+})
+});
+
+document.getElementById("text").value="";
+document.getElementById("location").value="";
+
+loadPosts();
+
+}
+
+async function loadPosts(){
+
+let res=await fetch("http://localhost:3000/posts");
+
+let posts=await res.json();
+
+let container=document.getElementById("posts");
+
+container.innerHTML="";
+
+posts.reverse().forEach(post=>{
+
+let div=document.createElement("div");
+
+div.className="post";
+
+div.innerHTML=`
+<p class="user">${post.user || "Anonymous"}</p>
+<p>${post.text}</p>
+<p class="location">📍 ${post.location}</p>
+`;
+
+container.appendChild(div);
+
+});
+
+}
+
+loadPosts();
+
+setInterval(loadPosts,3000);
+
+</script>
+
+</body>
+
+</html>
