@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
-const Post = require("./models/post");
+const Post = require("./models/Post");
 const app = express(); 
 
 // Middleware to parse JSON
