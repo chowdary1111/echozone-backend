@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Echozone Feed</title>
+
+<style>
+body{
+font-family:Arial;
+background:#111;
+color:white;
+text-align:center;
+}
+
+textarea{
+width:300px;
+height:80px;
+}
+
+button{
+padding:10px 20px;
+margin-top:10px;
+background:gold;
+border:none;
+cursor:pointer;
+}
+
+.post{
+border:1px solid #444;
+margin:10px;
+padding:10px;
+}
+</style>
+
+</head>
+
+<body>
+
+<h1>Echozone Feed</h1>
+
+<textarea id="text" placeholder="Say something nearby..."></textarea>
+<br>
+<button onclick="createPost()">Post</button>
+
+<h2>Nearby Posts</h2>
+
+<div id="feed"></div>
+
+<script>
+
+async function createPost(){
+
+const text=document.getElementById("text").value;
+
+await fetch("/posts",{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({
+text:text,
+location:"unknown",
+type:"chat",
+user:"anonymous"
+})
+});
+
+loadPosts();
+}
+
+async function loadPosts(){
+
+const res=await fetch("/posts");
+
+const posts=await res.json();
+
+const feed=document.getElementById("feed");
+
+feed.innerHTML="";
+
+posts.forEach(p=>{
+
+const div=document.createElement("div");
+
+div.className="post";
+
+div.innerHTML=p.text;
+
+feed.appendChild(div);
+
+});
+
+}
+
+loadPosts();
+
+</script>
+
+</body>
+</html>

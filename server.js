@@ -11,25 +11,19 @@ const app = express();
 
 app.use(express.json());
 app.use(cors());
+app.use(express.static("public"));
 
 /* ---------------- MONGODB CONNECTION ---------------- */
 
-mongoose.connect(process.env.MONGO_URI,{
-useNewUrlParser:true,
-useUnifiedTopology:true
-})
-
+mongoose.connect(process.env.MONGO_URI)
 .then(()=>console.log("MongoDB Connected"))
 .catch(err=>console.log("MongoDB Error:",err));
 
 /* ---------------- ROOT ROUTE ---------------- */
 
-app.get("/",(req,res)=>{
-
-res.send("ECHOZONE server is running");
-
+app.get("/", (req, res) => {
+res.sendFile(__dirname + "/public/echozone.html");
 });
-
 /* ---------------- CREATE POST ---------------- */
 
 app.post("/posts",async(req,res)=>{
