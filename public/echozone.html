@@ -222,7 +222,7 @@ async function sendPost(){
 const text=document.getElementById("text").value
 const location=document.getElementById("location").value
 
-await fetch("http://localhost:3000/posts",{
+await fetch("/posts",{
 
 method:"POST",
 
