@@ -1,115 +1,161 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
-
-<title>EchoZone</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+<meta charset="UTF-8">
+<title>Echozone</title>
 
 <style>
 
+/* BODY */
+
 body{
-font-family:'Poppins',sans-serif;
-background:black;
-background:linear-gradient(135deg,#000000,#111111,#1a1a1a);
-color:white;
-display:flex;
-justify-content:center;
-align-items:center;
+margin:0;
 height:100vh;
+font-family:Arial, Helvetica, sans-serif;
+background:linear-gradient(135deg,#000000,#111,#000000);
+overflow:hidden;
+color:white;
+}
+
+/* GOLD PARTICLES BACKGROUND */
+
+body::before{
+content:"";
+position:absolute;
+width:200%;
+height:200%;
+background-image:radial-gradient(circle,#d4af37 1px, transparent 1px);
+background-size:40px 40px;
+animation:particleMove 30s linear infinite;
+opacity:0.3;
+}
+
+@keyframes particleMove{
+0%{transform:translate(0,0)}
+100%{transform:translate(-600px,-600px)}
+}
+
+/* BIG MOVING TAGLINE */
+
+.tagline{
+position:absolute;
+top:40%;
+white-space:nowrap;
+font-size:120px;
+font-weight:900;
+opacity:0.25;
+
+background:linear-gradient(
+90deg,
+red,
+orange,
+yellow,
+green,
+cyan,
+blue,
+violet
+);
+
+background-size:400%;
+-webkit-background-clip:text;
+-webkit-text-fill-color:transparent;
+
+animation:
+rainbowFlow 8s linear infinite,
+moveText 20s linear infinite;
+}
+
+/* COLOR FLOW */
+
+@keyframes rainbowFlow{
+0%{background-position:0%}
+100%{background-position:400%}
+}
+
+/* TEXT MOVEMENT */
+
+@keyframes moveText{
+0%{transform:translateX(100%)}
+100%{transform:translateX(-100%)}
+}
+
+/* CENTER CONTENT */
+
+.center{
+position:absolute;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+text-align:center;
+}
+
+/* TITLE */
+
+h1{
+font-size:60px;
+color:#d4af37;
 margin:0;
 }
 
-.container{
-width:520px;
-background:#0f0f0f;
-padding:35px;
-border-radius:14px;
-box-shadow:0 0 30px rgba(255,215,0,0.25);
-border:1px solid rgba(255,215,0,0.2);
-}
+/* SUBTITLE */
 
-h1{
-text-align:center;
-color:#FFD700;
-margin-bottom:10px;
-letter-spacing:1px;
-}
-
-.subtitle{
-text-align:center;
-color:#bbb;
-margin-bottom:25px;
-}
-
-input{
-width:100%;
-padding:12px;
+p{
+font-size:22px;
+opacity:0.8;
 margin-top:10px;
-border-radius:6px;
-border:1px solid #333;
-background:#111;
-color:white;
-font-size:14px;
-outline:none;
 }
 
-input:focus{
-border:1px solid #FFD700;
-}
+/* BUTTON */
 
 button{
-width:100%;
-margin-top:18px;
-padding:13px;
-background:#FFD700;
-color:black;
-font-weight:600;
+margin-top:30px;
+padding:15px 40px;
+font-size:18px;
 border:none;
-border-radius:6px;
+border-radius:30px;
+background:#d4af37;
+color:black;
 cursor:pointer;
-font-size:15px;
+font-weight:bold;
 transition:0.3s;
 }
 
 button:hover{
-background:#e6c200;
+transform:scale(1.1);
+box-shadow:0 0 25px gold;
 }
 
-.posts-title{
-margin-top:25px;
-color:#FFD700;
+/* SECOND PAGE */
+
+#appPage{
+display:none;
+position:absolute;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+text-align:center;
+}
+
+input,textarea{
+padding:10px;
+margin-top:10px;
+width:250px;
+border:none;
+border-radius:6px;
 }
 
 #posts{
-margin-top:15px;
-max-height:280px;
-overflow-y:auto;
+margin-top:20px;
+max-height:200px;
+overflow:auto;
 }
 
 .post{
-background:#151515;
-border:1px solid #333;
-padding:12px;
-border-radius:6px;
-margin-bottom:12px;
-}
-
-.user{
-color:#FFD700;
-font-weight:600;
-}
-
-.location{
-font-size:12px;
-color:#aaa;
-}
-
-hr{
-border:0;
-border-top:1px solid #333;
+background:#111;
+padding:10px;
 margin-top:10px;
+border-left:4px solid gold;
 }
 
 </style>
@@ -118,85 +164,108 @@ margin-top:10px;
 
 <body>
 
-<div class="container">
+<!-- LANDING PAGE -->
 
-<h1>EchoZone</h1>
-<p class="subtitle">Anonymous Local Conversations</p>
+<div id="landing">
 
-<input id="text" placeholder="Ask something nearby...">
+<div class="tagline">
+Your Voice. Your Zone. Your Safety.
+</div>
 
-<input id="location" placeholder="Enter location">
+<div class="center">
 
-<button onclick="createPost()">Post</button>
+<h1>Echozone</h1>
 
-<h3 class="posts-title">Nearby Posts</h3>
+<p>Ask. Connect. Stay Safe Nearby.</p>
+
+<button onclick="openApp()">Enter Echozone</button>
+
+</div>
+
+</div>
+
+
+<!-- APP PAGE -->
+
+<div id="appPage">
+
+<h1>Echozone</h1>
+
+<textarea id="text" placeholder="Ask something nearby..."></textarea><br>
+
+<input id="location" placeholder="Enter location"><br>
+
+<button onclick="sendPost()">Post</button>
 
 <div id="posts"></div>
 
 </div>
 
+
 <script>
 
-async function createPost(){
+/* OPEN SECOND PAGE */
 
-let text=document.getElementById("text").value;
-let location=document.getElementById("location").value;
+function openApp(){
 
-let user="User"+Math.floor(Math.random()*10000);
+document.getElementById("landing").style.display="none"
+document.getElementById("appPage").style.display="block"
+
+loadPosts()
+
+}
+
+/* SEND POST TO BACKEND */
+
+async function sendPost(){
+
+const text=document.getElementById("text").value
+const location=document.getElementById("location").value
 
 await fetch("http://localhost:3000/posts",{
+
 method:"POST",
+
 headers:{
 "Content-Type":"application/json"
 },
+
 body:JSON.stringify({
 text:text,
-location:location,
-user:user
+location:location
 })
-});
 
-document.getElementById("text").value="";
-document.getElementById("location").value="";
+})
 
-loadPosts();
+loadPosts()
 
 }
+
+/* LOAD POSTS FROM SERVER */
 
 async function loadPosts(){
 
-let res=await fetch("http://localhost:3000/posts");
+const res=await fetch("http://localhost:3000/posts")
 
-let posts=await res.json();
+const posts=await res.json()
 
-let container=document.getElementById("posts");
+const container=document.getElementById("posts")
 
-container.innerHTML="";
+container.innerHTML=""
 
-posts.reverse().forEach(post=>{
+posts.forEach(p=>{
 
-let div=document.createElement("div");
+container.innerHTML+=`
+<div class="post">
+${p.text} - ${p.location}
+</div>
+`
 
-div.className="post";
-
-div.innerHTML=`
-<p class="user">${post.user || "Anonymous"}</p>
-<p>${post.text}</p>
-<p class="location">📍 ${post.location}</p>
-`;
-
-container.appendChild(div);
-
-});
+})
 
 }
-
-loadPosts();
-
-setInterval(loadPosts,3000);
 
 </script>
 
 </body>
-
 </html>

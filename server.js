@@ -2,80 +2,101 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
-const Post = require("./models/Post");
-const app = express(); 
 
-// Middleware to parse JSON
-app.use(express.json()); 
+const Post = require("./models/Post");
+
+const app = express();
+
+/* ---------------- MIDDLEWARE ---------------- */
+
+app.use(express.json());
 app.use(cors());
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGO_URI)
-.then(() => console.log("MongoDB Connected"))
-.catch(err => console.log(err));
+/* ---------------- MONGODB CONNECTION ---------------- */
 
-app.get("/", (req, res) => {
-    res.send("ECHOZONE server is running");
+mongoose.connect(process.env.MONGO_URI,{
+useNewUrlParser:true,
+useUnifiedTopology:true
+})
+
+.then(()=>console.log("MongoDB Connected"))
+.catch(err=>console.log("MongoDB Error:",err));
+
+/* ---------------- ROOT ROUTE ---------------- */
+
+app.get("/",(req,res)=>{
+
+res.send("ECHOZONE server is running");
+
 });
 
-// --- POINT 1: UPDATED POST ROUTE ---
-// I added the 'type' and 'user' fields to match your pitch requirements
-app.post("/posts", async (req, res) => {
-    try {
-        const post = new Post({
-            text: req.body.text,
-            location: req.body.location,
-            type: req.body.type,
-            user: req.body.user
-        });
-        await post.save();
-        res.status(201).send("Post saved");
-    } catch (err) {
-        res.status(500).send("Error saving post");
-    }
-});
+/* ---------------- CREATE POST ---------------- */
 
-// --- POINT 2: NEW GET ROUTE ADDED HERE ---
-// This allows your frontend to fetch and display the local anonymous chats
-app.get("/posts", async (req, res) => {
-    try {
-        const allPosts = await Post.find(); 
-        res.json(allPosts);
-    } catch (err) {
-        res.status(500).send("Error fetching posts");
-    }
-});
-app.post("/posts", async (req, res) => {
-try {
-const post = new Post({
-text: req.body.text,
-location: req.body.location,
-type: req.body.type,
-user: req.body.user
+app.post("/posts",async(req,res)=>{
+
+try{
+
+const post=new Post({
+
+text:req.body.text,
+location:req.body.location,
+type:req.body.type,
+user:req.body.user
+
 });
 
 await post.save();
 
-res.status(201).send("Post saved");
+res.status(201).json({
 
-} catch (err) {
-res.status(500).send("Error saving post");
-}
+message:"Post saved successfully"
+
 });
 
+}catch(err){
 
-app.get("/posts", async (req, res) => {
-try {
-const allPosts = await Post.find();
-res.json(allPosts);
-} catch (err) {
-res.status(500).send("Error fetching posts");
-}
+console.log(err);
+
+res.status(500).json({
+
+error:"Error saving post"
+
 });
 
+}
 
-const PORT = process.env.PORT || 3000;
+});
 
-app.listen(PORT, () => {
-console.log("server running on port " + PORT);
+/* ---------------- GET ALL POSTS ---------------- */
+
+app.get("/posts",async(req,res)=>{
+
+try{
+
+const posts=await Post.find().sort({_id:-1});
+
+res.json(posts);
+
+}catch(err){
+
+console.log(err);
+
+res.status(500).json({
+
+error:"Error fetching posts"
+
+});
+
+}
+
+});
+
+/* ---------------- SERVER START ---------------- */
+
+const PORT=process.env.PORT || 3000;
+
+app.listen(PORT,()=>{
+
+console.log("Echozone server running on port "+PORT);
+
 });
