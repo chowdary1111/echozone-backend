@@ -85,6 +85,16 @@ error:"Error fetching posts"
 
 });
 
+/* ----------- DELETE POST ----------- */
+app.delete("/posts/:id", async (req, res) => {
+  try {
+    await Post.findByIdAndDelete(req.params.id);
+    res.json({ message: "Post deleted" });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: "Delete failed" });
+  }
+});
 /* ---------------- SERVER START ---------------- */
 
 const PORT=process.env.PORT || 3000;

@@ -240,12 +240,20 @@ location:location
 loadPosts()
 
 }
+async function deletePost(id){
+   await fetch(http://echozone-3ztl.onrender.com/Posts, {
+method:"DELETE"
+})
+loadPosts()
+}
 
 /* LOAD POSTS FROM SERVER */
 
+
+
 async function loadPosts(){
 
-const res=await fetch("http://localhost:3000/posts")
+const res=await fetch("http://echozone-3ztl.onrender.com/Posts")
 
 const posts=await res.json()
 
@@ -253,16 +261,22 @@ const container=document.getElementById("posts")
 
 container.innerHTML=""
 
-posts.forEach(p=>{
+posts.forEach(p => {
+  const div = document.createElement("div")
+  div.className = "post"
 
-container.innerHTML+=`
-<div class="post">
-${p.text} - ${p.location}
-</div>
-`
+  const text = document.createElement("p")
+  text.innerText = p.text + " - " + p.location
 
+  const btn = document.createElement("button")
+  btn.innerText = "Delete"
+  btn.onclick = () => deletePost(p._id)
+
+  div.appendChild(text)
+  div.appendChild(btn)
+
+  container.appendChild(div)
 })
-
 }
 
 </script>
