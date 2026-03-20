@@ -1,245 +1,262 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>Echozone</title>
 
 <style>
-body {
-    margin: 0;
-    font-family: 'Segoe UI', sans-serif;
-    background: black;
-    color: white;
-    overflow: hidden;
+
+/* BODY */
+body{
+margin:0;
+height:100vh;
+font-family:Arial, Helvetica, sans-serif;
+background:linear-gradient(135deg,#000000,#111,#000000);
+overflow:hidden;
+color:white;
 }
 
-/* BACKGROUND ANIMATION */
-canvas {
-    position: fixed;
-    top: 0;
-    left: 0;
-    z-index: 0;
+/* GOLD PARTICLES */
+body::before{
+content:"";
+position:absolute;
+width:200%;
+height:200%;
+background-image:radial-gradient(circle,#d4af37 1px,transparent 1px);
+background-size:40px 40px;
+animation:particleMove 25s linear infinite;
+opacity:0.25;
+}
+
+@keyframes particleMove{
+0%{transform:translate(0,0)}
+100%{transform:translate(-600px,600px)}
+}
+
+/* BIG TAGLINE */
+.tagline{
+position:absolute;
+top:40%;
+white-space:nowrap;
+font-size:120px;
+font-weight:900;
+opacity:0.35;
+
+background:linear-gradient(
+90deg,
+red, orange, yellow, green, cyan, blue, violet
+);
+
+background-size:400%;
+-webkit-background-clip:text;
+-webkit-text-fill-color:transparent;
+
+animation:
+rainbowFlow 8s linear infinite,
+moveText 20s linear infinite;
+}
+
+@keyframes rainbowFlow{
+0%{background-position:0%}
+100%{background-position:400%}
+}
+
+@keyframes moveText{
+0%{transform:translateX(100%)}
+100%{transform:translateX(-100%)}
 }
 
 /* CENTER */
-.center {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    text-align: center;
-    z-index: 1;
+.center{
+position:absolute;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+text-align:center;
 }
 
-/* GLOW TITLE */
-.glow {
-    font-size: 65px;
-    color: #facc15;
-    animation: glowAnim 2s infinite alternate;
+/* TITLE */
+h1{
+font-size:60px;
+color:#d4af37;
+margin:0;
 }
 
-@keyframes glowAnim {
-    from { text-shadow: 0 0 10px #facc15; }
-    to { text-shadow: 0 0 30px #f59e0b, 0 0 60px #facc15; }
-}
-
-/* TAGLINE */
-.tagline span {
-    display: block;
-    font-size: 18px;
-    margin-top: 5px;
-    animation: colorChange 3s infinite;
-}
-
-.tagline span:nth-child(1){animation-delay:0s;}
-.tagline span:nth-child(2){animation-delay:1s;}
-.tagline span:nth-child(3){animation-delay:2s;}
-
-@keyframes colorChange {
-    0% { color: #38bdf8; }
-    50% { color: #facc15; }
-    100% { color: #22c55e; }
+/* SUBTITLE */
+p{
+font-size:22px;
+opacity:0.8;
+margin-top:10px;
 }
 
 /* BUTTON */
-button {
-    margin-top: 20px;
-    padding: 12px 30px;
-    border-radius: 30px;
-    border: none;
-    background: linear-gradient(45deg, #facc15, #f59e0b);
-    color: black;
-    font-weight: bold;
-    cursor: pointer;
+button{
+margin-top:30px;
+padding:15px 40px;
+font-size:18px;
+border:none;
+border-radius:30px;
+background:#d4af37;
+color:black;
+cursor:pointer;
+font-weight:bold;
+transition:0.3s;
 }
 
-/* INPUTS */
-textarea, input {
-    margin-top: 10px;
-    padding: 10px;
-    width: 260px;
-    border-radius: 10px;
-    border: none;
+button:hover{
+transform:scale(1.1);
+box-shadow:0 0 25px gold;
+}
+
+/* SECOND PAGE */
+#appPage{
+display:none;
+position:absolute;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+text-align:center;
+}
+
+input,textarea{
+padding:10px;
+margin-top:10px;
+width:250px;
+border:none;
+border-radius:6px;
 }
 
 /* POSTS */
-.post {
-    margin-top: 10px;
-    padding: 10px;
-    background: rgba(255,255,255,0.1);
-    border-radius: 10px;
+#posts{
+margin-top:20px;
+max-height:200px;
+overflow:auto;
 }
 
-/* HIDE APP */
-#appPage {
-    display: none;
+.post{
+background:#111;
+padding:10px;
+margin-top:10px;
+border-left:4px solid gold;
 }
+
+.post button{
+margin-left:10px;
+padding:5px 10px;
+font-size:12px;
+}
+
 </style>
-
 </head>
 
 <body>
 
-<canvas id="bg"></canvas>
-
-<!-- LANDING PAGE -->
-
-<div id="landing" class="center">
-    <h1 class="glow">Echozone</h1>
-
-```
+<!-- TAGLINE BACKGROUND -->
 <div class="tagline">
-    <span>Your Voice.</span>
-    <span>Your Zone.</span>
-    <span>Your Safety.</span>
+Your Voice. Your Zone. Your Safety.
 </div>
 
-<button onclick="openApp()">Enter Echozone</button>
-```
+<!-- LANDING PAGE -->
+<div id="landing">
+<div class="center">
 
+<h1>Echozone</h1>
+<p>Ask. Connect. Stay Safe Nearby.</p>
+
+<button onclick="openApp()">Enter Echozone</button>
+
+</div>
 </div>
 
 <!-- APP PAGE -->
+<div id="appPage">
 
-<div id="appPage" class="center">
-    <h1 class="glow">Echozone</h1>
+<h1>Echozone</h1>
 
-```
 <textarea id="text" placeholder="Ask something nearby..."></textarea><br>
+
 <input id="location" placeholder="Enter location"><br>
 
 <button onclick="sendPost()">Post</button>
 
 <div id="posts"></div>
-```
 
 </div>
 
 <script>
 
-/* ===== BACKGROUND STARS ===== */
-const canvas = document.getElementById("bg");
-const ctx = canvas.getContext("2d");
-
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-
-let stars = [];
-
-for (let i = 0; i < 120; i++) {
-    stars.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        size: Math.random() * 2
-    });
+/* OPEN APP */
+function openApp(){
+document.getElementById("landing").style.display="none";
+document.getElementById("appPage").style.display="block";
+loadPosts();
 }
 
-function animate() {
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    ctx.fillStyle = "white";
-
-    stars.forEach(s => {
-        ctx.beginPath();
-        ctx.arc(s.x, s.y, s.size, 0, Math.PI*2);
-        ctx.fill();
-
-        s.y += 0.3;
-        if (s.y > canvas.height) s.y = 0;
-    });
-
-    requestAnimationFrame(animate);
+/* AUTO GEOLOCATION */
+window.onload = function(){
+if(navigator.geolocation){
+navigator.geolocation.getCurrentPosition(
+pos=>{
+document.getElementById("location").value =
+pos.coords.latitude.toFixed(2)+", "+pos.coords.longitude.toFixed(2);
 }
-animate();
-
-/* ===== NAVIGATION ===== */
-function openApp() {
-    document.getElementById("landing").style.display = "none";
-    document.getElementById("appPage").style.display = "block";
-    loadPosts();
+);
 }
-
-/* AUTO LOCATION */
-if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-        pos => {
-            document.getElementById("location").value =
-                pos.coords.latitude.toFixed(2) + ", " + pos.coords.longitude.toFixed(2);
-        }
-    );
 }
 
 /* SEND POST */
-async function sendPost() {
-    const text = document.getElementById("text").value;
-    const location = document.getElementById("location").value;
+async function sendPost(){
+const text=document.getElementById("text").value;
+const location=document.getElementById("location").value;
 
-    if (!text) return alert("Write something!");
+if(!text) return alert("Write something!");
 
-    await fetch("https://echozone-3ztl.onrender.com/posts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, location })
-    });
+await fetch("https://echozone-3ztl.onrender.com/posts",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({text,location})
+});
 
-    document.getElementById("text").value = "";
-    loadPosts();
+document.getElementById("text").value="";
+loadPosts();
 }
 
 /* LOAD POSTS */
-async function loadPosts() {
-    try {
-        const res = await fetch("https://echozone-3ztl.onrender.com/posts");
-        const posts = await res.json();
+async function loadPosts(){
+try{
+const res=await fetch("https://echozone-3ztl.onrender.com/posts");
+const posts=await res.json();
 
-        const container = document.getElementById("posts");
-        container.innerHTML = "";
+const container=document.getElementById("posts");
+container.innerHTML="";
 
-        posts.forEach(p => {
-            const div = document.createElement("div");
-            div.className = "post";
-            div.innerText = p.text + " - " + p.location;
+posts.forEach(p=>{
+const div=document.createElement("div");
+div.className="post";
 
-            const btn = document.createElement("button");
-            btn.innerText = "Delete";
-            btn.onclick = () => deletePost(p._id);
+const txt=document.createElement("span");
+txt.innerText=p.text+" - "+p.location;
 
-            div.appendChild(btn);
-            container.appendChild(div);
-        });
+const btn=document.createElement("button");
+btn.innerText="Delete";
+btn.onclick=()=>deletePost(p._id);
 
-    } catch (err) {
-        console.log("Backend sleeping...");
-    }
+div.appendChild(txt);
+div.appendChild(btn);
+container.appendChild(div);
+});
+
+}catch(err){
+console.log("Backend sleeping...");
+}
 }
 
 /* DELETE POST */
-async function deletePost(id) {
-    await fetch("https://echozone-3ztl.onrender.com/posts/" + id, {
-        method: "DELETE"
-    });
-
-    loadPosts();
+async function deletePost(id){
+await fetch("https://echozone-3ztl.onrender.com/posts/"+id,{
+method:"DELETE"
+});
+loadPosts();
 }
 
 </script>
