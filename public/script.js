@@ -1,3 +1,13 @@
+function openApp() {
+
+ document.getElementById("landing").style.display = "none";
+
+ document.getElementById("appPage").style.display = "block";
+
+ loadPosts();
+
+}
+
 /* LOAD POSTS */
 
 async function loadPosts() {
