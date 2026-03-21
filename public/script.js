@@ -1,22 +1,11 @@
- /* OPEN APP */
-
-function openApp(){
-
- document.getElementById("landing").style.display = "none";
-
- document.getElementById("appPage").style.display = "block";
-
- loadPosts();
-
-}
-
-
 /* LOAD POSTS */
 
-async function loadPosts(){
-try{
+async function loadPosts() {
 
-  const res = await fetch("https://echozone-3zt1.onrender.com/posts");
+ try {
+
+  const res = await fetch("/posts");
+
   const posts = await res.json();
 
   const container = document.getElementById("posts");
@@ -25,112 +14,84 @@ try{
 
   posts.forEach(p => {
 
-   console.log(p); // DEBUG
-
    const div = document.createElement("div");
+
    div.className = "post";
 
-   /* TEXT */
+   const text = document.createElement("p");
+   text.innerText = p.text;
 
-   const txt = document.createElement("span");
-   txt.innerText = p.text + " — " + p.location;
-      /* 🕒 TIMESTAMP */
+   const loc = document.createElement("small");
+   loc.innerText = "📍 " + p.location;
 
-const time = document.createElement("small");
+   const time = document.createElement("small");
 
-const postTime = new Date(p.createdAt);
+   const postTime = new Date(p.createdAt);
 
-time.innerText =
- "🕒 " + postTime.toLocaleString("en-IN");
+   time.innerText =
+    "🕒 " + postTime.toLocaleString("en-IN");
 
-time.style.display = "block";
-time.style.fontSize = "12px";
-time.style.color = "gray";
-time.style.marginTop = "5px";
-   /* DELETE BUTTON */
+   time.style.display = "block";
+   time.style.fontSize = "12px";
+   time.style.color = "gray";
 
-   const btn = document.createElement("button");
-   btn.innerText = "Delete";
-
-   btn.onclick = async () => {
-
-    await fetch(
-     "https://echozone-3zt1.onrender.com/posts/" + p._id,
-     {
-      method:"DELETE"
-     }
-    );
-
-    loadPosts();
-
-   };
-
-   /* ADD ELEMENTS */
-
-   div.appendChild(txt);
+   div.appendChild(text);
+   div.appendChild(loc);
    div.appendChild(time);
-   div.appendChild(btn);
 
    container.appendChild(div);
 
   });
 
- }catch(err){
+ } catch (err) {
 
-  console.error("Error:",err);
+  console.log("Load error:", err);
 
  }
 
 }
 
+/* CREATE POST */
 
-/* ADD POST WITH GEOLOCATION */
+async function createPost() {
 
-async function addPost(){
+ const text =
+  document.getElementById("postInput").value;
 
- const text = document.getElementById("text").value;
+ if (!text) return;
 
- if(!text){
-  alert("Enter text");
-  return;
- }
+ navigator.geolocation.getCurrentPosition(async position => {
 
- navigator.geolocation.getCurrentPosition(
-  async position => {
+  const lat = position.coords.latitude;
+  const lon = position.coords.longitude;
 
-   const latitude = position.coords.latitude;
-   const longitude = position.coords.longitude;
+  const location = lat + "," + lon;
 
-   const location =
-     latitude + "," + longitude;
+  await fetch("/posts", {
 
-   await fetch(
-    "https://echozone-3zt1.onrender.com/posts",
-    {
-     method:"POST",
-     headers:{
-      "Content-Type":"application/json"
-     },
-     body:JSON.stringify({
-      text,
-      location
-     })
-    }
-   );
+   method: "POST",
 
-   document.getElementById("text").value="";
+   headers: {
+    "Content-Type": "application/json"
+   },
 
-   loadPosts();
+   body: JSON.stringify({
+    text: text,
+    location: location,
+    type: "general",
+    user: "anonymous"
+   })
 
-  },
-  error => {
-   alert("Location permission denied");
-  }
- );
+  });
+
+  document.getElementById("postInput").value = "";
+
+  loadPosts();
+
+ });
 
 }
 
-
-/* LOAD POSTS */
+/* LOAD POSTS ON START */
 
 loadPosts();
