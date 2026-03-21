@@ -48,6 +48,24 @@ async function loadPosts() {
    div.appendChild(text);
    div.appendChild(loc);
    div.appendChild(time);
+/* DELETE BUTTON */
+
+const delBtn =
+ document.createElement("button");
+
+delBtn.innerText = "🗑 Delete";
+
+delBtn.onclick = async () => {
+
+ await fetch("/posts/" + p._id, {
+  method: "DELETE"
+ });
+
+ loadPosts();
+
+};
+
+div.appendChild(delBtn);
 
    container.appendChild(div);
 
@@ -66,11 +84,13 @@ async function loadPosts() {
 async function createPost() {
 
  const text =
-  document.getElementById("postInput").value;
+ document.getElementById("text").value;
 
  if (!text) return;
 
- navigator.geolocation.getCurrentPosition(async position => {
+ navigator.geolocation.getCurrentPosition(
+
+ async position => {
 
   const lat = position.coords.latitude;
   const lon = position.coords.longitude;
@@ -94,13 +114,22 @@ async function createPost() {
 
   });
 
-  document.getElementById("postInput").value = "";
+  document.getElementById("text").value = "";
 
   loadPosts();
 
- });
+ },
+
+ error => {
+
+  alert("Location permission required to post 📍");
+
+ }
+
+ );
 
 }
+
 
 /* LOAD POSTS ON START */
 
