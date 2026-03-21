@@ -1,13 +1,13 @@
 const mongoose = require("mongoose");
 
-const PostSchema = new mongoose.Schema({
+const PostSchema = new mongoose.Schema(
+ {
   text: String,
-  location: String,
-  user: String,
-  createdAt: {
-    type: Date,
-    default: Date.now
-  }
-});
+  location: String
+ },
+ {
+  timestamps: true   // ⭐ THIS ENABLES createdAt
+ }
+);
 
 module.exports = mongoose.model("Post", PostSchema);
