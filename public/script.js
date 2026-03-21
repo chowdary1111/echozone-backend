@@ -1,7 +1,20 @@
+ /* OPEN APP */
+
+function openApp(){
+
+ document.getElementById("landing").style.display = "none";
+
+ document.getElementById("appPage").style.display = "block";
+
+ loadPosts();
+
+}
+
+
 /* LOAD POSTS */
 
 async function loadPosts(){
- try{
+try{
 
   const res = await fetch("https://echozone-3zt1.onrender.com/posts");
   const posts = await res.json();
@@ -25,7 +38,7 @@ async function loadPosts(){
 
 const time = document.createElement("small");
 
-const postTime = new Date(p.createdat);
+const postTime = new Date(p.createdAt);
 
 time.innerText =
  "🕒 " + postTime.toLocaleString("en-IN");
