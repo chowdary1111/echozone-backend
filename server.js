@@ -35,7 +35,9 @@ const post=new Post({
 text:req.body.text,
 location:req.body.location,
 type:req.body.type,
-user:req.body.user
+user:req.body.user,
+
+time:new Date() 
 
 });
 
@@ -49,7 +51,8 @@ message:"Post saved successfully"
 
 }catch(err){
 
-console.log(err);
+console.log(err); 7
+0
 
 res.status(500).json({
 
