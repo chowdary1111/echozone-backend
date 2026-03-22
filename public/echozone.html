@@ -7,7 +7,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Echozone</title>
-
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&family=Montserrat:wght@300;400&display=swap" rel="stylesheet">
 <style>
 
 /* =========================
@@ -22,6 +22,24 @@ background:
 radial-gradient(circle at 20% 30%, #111, #000);
 color:white;
 overflow-x:hidden;
+}
+
+/* Echozone Title Style */
+
+h1 {
+
+font-family:'Orbitron', sans-serif;
+
+font-size: 72px;
+
+letter-spacing: 8px;
+
+font-weight:600;
+
+text-shadow:
+0 0 10px rgba(0,240,255,0.6),
+0 0 20px rgba(255,0,255,0.4);
+
 }
 
 /* Floating particles */
@@ -308,6 +326,77 @@ height:60px;
 
 }
 
+/* CINEMATIC SCROLL TAGLINE */
+
+.tagline-container {
+
+width:100%;
+overflow:hidden;
+
+margin-top:30px;
+margin-bottom:25px;
+
+}
+
+.tagline {
+
+display:inline-block;
+
+white-space:nowrap;
+
+font-size:44px;
+font-weight:300;
+font-family:'Montserrat', sans-serif;
+opacity:0.55;
+letter-spacing:5px;
+
+padding-left:100%;
+
+background:linear-gradient(
+90deg,
+#00f0ff,
+#ff00ff,
+#00ff88,
+#00f0ff
+);
+
+background-size:300%;
+
+-webkit-background-clip:text;
+-webkit-text-fill-color:transparent;
+
+animation:
+scrollTagline 24s linear infinite,
+glowColors 6s linear infinite;
+
+}
+
+@keyframes scrollTagline {
+
+from {
+transform: translateX(0%);
+}
+
+to {
+transform: translateX(-100%);
+}
+
+}
+
+@keyframes glowColors {
+
+0% {
+background-position:0%;
+}
+
+100% {
+background-position:300%;
+}
+
+}
+
+
+
 </style>
 </head>
 
@@ -321,9 +410,15 @@ height:60px;
 
 <h1>Echozone</h1>
 
-<p class="tagline">
-Ask. Connect. Stay Safe Nearby.
-</p>
+<div class="tagline-container">
+
+<div class="tagline">
+
+EchoZone — Where Voices Travel Without Names • Ask Nearby • Share Freely • Stay Anonymous • Discover the Echo Around You 
+
+</div>
+
+</div>
 
 <button onclick="openApp()">
 Enter Echozone
