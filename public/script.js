@@ -1,6 +1,6 @@
 function openApp() {
 
- document.getElementById("landing").style.display = "none";
+ document.getElementById("landingPage").style.display = "none";
 
  document.getElementById("appPage").style.display = "block";
 

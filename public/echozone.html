@@ -1,3 +1,7 @@
+
+
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,207 +10,461 @@
 
 <style>
 
-/* BODY */
+/* =========================
+   BODY + BACKGROUND
+========================= */
+
 body{
 margin:0;
+font-family: 'Segoe UI', Arial;
 height:100vh;
-font-family:Arial, Helvetica, sans-serif;
-background:linear-gradient(135deg,#000000,#111,#000000);
-overflow:hidden;
+background:
+radial-gradient(circle at 20% 30%, #111, #000);
 color:white;
+overflow-x:hidden;
 }
 
-/* GOLD PARTICLES */
+/* Floating particles */
+
 body::before{
 content:"";
-position:absolute;
+position:fixed;
 width:200%;
 height:200%;
-background-image:radial-gradient(circle,#d4af37 1px,transparent 1px);
+background-image:
+radial-gradient(#ffd700 1px, transparent 1px);
 background-size:40px 40px;
-animation:particleMove 25s linear infinite;
-opacity:0.25;
+opacity:0.15;
+animation:moveParticles 30s linear infinite;
+z-index:-1;
 }
 
-@keyframes particleMove{
-0%{transform:translate(0,0)}
-100%{transform:translate(-600px,600px)}
+@keyframes moveParticles{
+0%{transform:translate(0,0);}
+100%{transform:translate(-600px,600px);}
 }
 
-/* BIG TAGLINE */
-.tagline{
-position:absolute;
-top:40%;
-white-space:nowrap;
-font-size:120px;
-font-weight:900;
-opacity:0.35;
+/* =========================
+   LANDING PAGE
+========================= */
 
-background:linear-gradient(
-90deg,
-red, orange, yellow, green, cyan, blue, violet
-);
-
-background-size:400%;
--webkit-background-clip:text;
--webkit-text-fill-color:transparent;
-
-animation:
-rainbowFlow 8s linear infinite,
-moveText 20s linear infinite;
-}
-
-@keyframes rainbowFlow{
-0%{background-position:0%}
-100%{background-position:400%}
-}
-
-@keyframes moveText{
-0%{transform:translateX(100%)}
-100%{transform:translateX(-100%)}
-}
-
-/* CENTER */
-.center{
-position:absolute;
-top:50%;
-left:50%;
-transform:translate(-50%,-50%);
+.echo-core{
+height:100vh;
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:center;
 text-align:center;
 }
 
-/* TITLE */
+/* Title */
+
 h1{
-font-size:60px;
-color:#d4af37;
-margin:0;
+font-size:55px;
+margin:10px;
+
+background:linear-gradient(
+90deg,
+#ffd700,
+#ff9900,
+#00ffff,
+#ff00ff,
+#ffd700
+);
+
+background-size:300%;
+
+-webkit-background-clip:text;
+-webkit-text-fill-color:transparent;
+
+animation:titleFlow 6s linear infinite;
 }
 
-/* SUBTITLE */
-p{
-font-size:22px;
-opacity:0.8;
-margin-top:10px;
+@keyframes titleFlow{
+0%{background-position:0%;}
+100%{background-position:300%;}
 }
 
-/* BUTTON */
-button{
-margin-top:30px;
-padding:15px 40px;
+/* Big Landing Tagline */
+
+.tagline{
 font-size:18px;
+opacity:0.8;
+margin-bottom:20px;
+}
+
+/* Button */
+
+button{
+padding:12px 28px;
 border:none;
 border-radius:30px;
-background:#d4af37;
-color:black;
-cursor:pointer;
+
+font-size:16px;
 font-weight:bold;
+
+background:linear-gradient(
+90deg,
+#ffd700,
+#ff9900
+);
+
+color:black;
+
+cursor:pointer;
+
 transition:0.3s;
 }
 
 button:hover{
-transform:scale(1.1);
-box-shadow:0 0 25px gold;
+transform:scale(1.08);
+box-shadow:0 0 15px #ffd700;
 }
 
-/* SECOND PAGE */
+/* =========================
+   APP PAGE
+========================= */
+
 #appPage{
 display:none;
-
-display:flex;
-flex-direction:column;
-justify-content:center;
-aling-items:center;
-
-height:100vh;
-text-aling:center;
+padding:20px;
 }
 
-input,textarea{
-padding:10px;
-margin-top:10px;
-width:250px;
+/* Small moving tagline */
+
+.moving-tagline{
+width:100%;
+overflow:hidden;
+height:40px;
+margin-bottom:20px;
+position:relative;
+}
+
+.moving-tagline span{
+
+position:absolute;
+
+white-space:nowrap;
+
+font-size:22px;
+font-weight:bold;
+
+background:linear-gradient(
+90deg,
+#ffd700,
+#00ffff,
+#ff00ff,
+#ffd700
+);
+
+background-size:300%;
+
+-webkit-background-clip:text;
+-webkit-text-fill-color:transparent;
+
+animation:
+moveText 12s linear infinite,
+colorShift 6s linear infinite;
+}
+
+@keyframes moveText{
+0%{transform:translateX(100%);}
+100%{transform:translateX(-100%);}
+}
+
+@keyframes colorShift{
+0%{background-position:0%;}
+100%{background-position:300%;}
+}
+
+/* =========================
+   POST BOX
+========================= */
+
+.post-container{
+
+background:rgba(255,255,255,0.05);
+
+backdrop-filter:blur(10px);
+
+border-radius:15px;
+
+padding:15px;
+
+margin-bottom:20px;
+
+box-shadow:0 0 15px rgba(255,255,255,0.1);
+}
+
+/* Textarea */
+
+textarea{
+
+width:100%;
+height:70px;
+
+background:rgba(0,0,0,0.5);
+
 border:none;
-border-radius:6px;
+
+border-radius:10px;
+
+padding:10px;
+
+color:white;
+
+font-size:14px;
+
+resize:none;
+
+outline:none;
 }
 
-/* POSTS */
-#posts{
-margin-top:20px;
-max-height:200px;
-overflow:auto;
-}
+/* =========================
+   POSTS
+========================= */
 
 .post{
-background:#111; 
-padding:10px;
-margin-top:10px;
-border-left:4px solid gold;
+
+background:rgba(255,255,255,0.05);
+
+border-radius:15px;
+
+padding:12px;
+
+margin-bottom:12px;
+
+animation:fadeIn 0.4s ease;
+
+position:relative;
+
+box-shadow:0 0 12px rgba(0,0,0,0.6);
 }
 
-.post button{
-margin-left:10px;
+@keyframes fadeIn{
+from{
+opacity:0;
+transform:translateY(10px);
+}
+to{
+opacity:1;
+transform:translateY(0);
+}
+}
+
+/* Delete button */
+
+.delete-btn{
+
+position:absolute;
+right:10px;
+top:10px;
+
+background:red;
+color:white;
+
+border:none;
+
 padding:5px 10px;
+
+border-radius:20px;
+
+cursor:pointer;
+}
+
+/* Distance Badge */
+
+.distance{
+
 font-size:12px;
+
+opacity:0.7;
+
+margin-top:5px;
 }
 
-/* CENTER TEXTAREA + BUTTON */
+/* Timestamp */
 
-.post-container {
- display: flex;
- flex-direction: column;
- align-items: center;
-  gap: 10px;
+.time{
 
-  width: 100%;
-    margin: 0 auto;
+font-size:11px;
+
+opacity:0.5;
 }
 
-#text {
- width: 300px;
- resize: none;
+/* =========================
+   MOBILE SUPPORT
+========================= */
+
+@media(max-width:600px){
+
+h1{
+font-size:40px;
 }
 
-.post-container button {
-width: 130px;
-padding: 10px;
- }
+textarea{
+height:60px;
+}
+
+}
+
 </style>
 </head>
 
 <body>
 
-<!-- TAGLINE BACKGROUND -->
-<div class="tagline">
-Your Voice. Your Zone. Your Safety.
-</div>
+<!-- =========================
+     LANDING PAGE
+========================= -->
 
-<!-- LANDING PAGE -->
-<div id="landing">
-<div class="center">
+<div class="echo-core" id="landing">
 
 <h1>Echozone</h1>
-<p>Ask. Connect. Stay Safe Nearby.</p>
 
-<button onclick="openApp()">Enter Echozone</button>
+<p class="tagline">
+Ask. Connect. Stay Safe Nearby.
+</p>
+
+<button onclick="openApp()">
+Enter Echozone
+</button>
 
 </div>
-</div>
 
-<!-- APP PAGE -->
-<div id="appPage" style="display:none;">
+<!-- =========================
+     APP PAGE
+========================= -->
+
+<div id="appPage">
 
 <h1>Echozone</h1>
+
+<div class="moving-tagline">
+<span>
+Ask Something Nearby • Share Updates • Stay Connected •
+</span>
+</div>
 
 <div class="post-container">
 
-<textarea id="text" placeholder="Ask something nearby..."></textarea>
+<textarea
+id="text"
+placeholder="Ask something nearby..."
+></textarea>
 
-<button onclick="createPost()">Post</button>
+<br><br>
+
+<button onclick="createPost()">
+Post
+</button>
+
+</div>
 
 <div id="posts"></div>
 
 </div>
 
-<script src="script.js"></script>
+<script>
+
+/* =========================
+   OPEN APP
+========================= */
+
+function openApp(){
+
+document.getElementById("landing").style.display="none";
+
+document.getElementById("appPage").style.display="block";
+
+}
+
+/* =========================
+   CREATE POST
+========================= */
+
+function createPost(){
+
+let text=document.getElementById("text").value;
+
+if(text.trim()=="") return;
+
+/* Fake distance generator */
+
+let distance=Math.floor(
+Math.random()*50
+)+1;
+
+/* Timestamp */
+
+let time=new Date().toLocaleTimeString();
+
+/* Create Post */
+
+let post=document.createElement("div");
+
+post.className="post";
+
+post.innerHTML=`
+
+${text}
+
+<div class="distance">
+
+📍 ${distance} km away
+
+</div>
+
+<div class="time">
+
+${time}
+
+</div>
+
+<button class="delete-btn"
+onclick="this.parentElement.remove()">
+
+Delete
+
+</button>
+
+`;
+
+document
+.getElementById("posts")
+.prepend(post);
+
+document.getElementById("text").value="";
+
+}
+
+/* =========================
+   AUTO DEMO POSTS
+========================= */
+
+window.onload=function(){
+
+let demoPosts=[
+
+"Anyone nearby hospital?",
+"Power outage in my street",
+"Lost dog spotted",
+"Need water supply info"
+
+];
+
+demoPosts.forEach(msg=>{
+
+document.getElementById("text").value=msg;
+
+createPost();
+
+});
+
+document.getElementById("text").value="";
+
+}
+
+</script>
+
 </body>
 </html>
