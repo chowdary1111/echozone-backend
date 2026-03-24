@@ -1,12 +1,9 @@
-
-
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>Echozone</title>
+
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&family=Montserrat:wght@300;400&display=swap" rel="stylesheet">
 <style>
 
@@ -410,15 +407,9 @@ background-position:300%;
 
 <h1>Echozone</h1>
 
-<div class="tagline-container">
-
-<div class="tagline">
-
-EchoZone — Where Voices Travel Without Names • Ask Nearby • Share Freely • Stay Anonymous • Discover the Echo Around You 
-
-</div>
-
-</div>
+<p class="tagline">
+  • Fear Ends When Echo Begins • Help Starts Here • Anonymous Not Alone  • Echozone __ where Voices Travel 
+</p>
 
 <button onclick="openApp()">
 Enter Echozone
@@ -430,7 +421,7 @@ Enter Echozone
      APP PAGE
 ========================= -->
 
-<div id="appPage">
+<div id="appPage" style="display:none;">
 
 <h1>Echozone</h1>
 
@@ -459,107 +450,60 @@ Post
 
 </div>
 
-<script>
+<!-- LOAD SCRIPT -->
+<script src="./script.js"></script>
 
-/* =========================
-   OPEN APP
-========================= */
 
-function openApp(){
 
-document.getElementById("landing").style.display="none";
+<!-- 🚨 EMERGENCY FLOAT BUTTON -->
+<button 
+onclick="openEmergency()"
+id="emergencyBtn">
 
-document.getElementById("appPage").style.display="block";
-
-}
-
-/* =========================
-   CREATE POST
-========================= */
-
-function createPost(){
-
-let text=document.getElementById("text").value;
-
-if(text.trim()=="") return;
-
-/* Fake distance generator */
-
-let distance=Math.floor(
-Math.random()*50
-)+1;
-
-/* Timestamp */
-
-let time=new Date().toLocaleTimeString();
-
-/* Create Post */
-
-let post=document.createElement("div");
-
-post.className="post";
-
-post.innerHTML=`
-
-${text}
-
-<div class="distance">
-
-📍 ${distance} km away
-
-</div>
-
-<div class="time">
-
-${time}
-
-</div>
-
-<button class="delete-btn"
-onclick="this.parentElement.remove()">
-
-Delete
+🚨 EMERGENCY
 
 </button>
 
-`;
+<style>
 
-document
-.getElementById("posts")
-.prepend(post);
+#emergencyBtn {
 
-document.getElementById("text").value="";
+position: fixed;
+bottom: 25px;
+right: 25px;
 
-}
+background: red;
+color: white;
 
-/* =========================
-   AUTO DEMO POSTS
-========================= */
+padding: 14px 22px;
 
-window.onload=function(){
+border: none;
+border-radius: 50px;
 
-let demoPosts=[
+font-weight: bold;
+cursor: pointer;
 
-"Anyone nearby hospital?",
-"Power outage in my street",
-"Lost dog spotted",
-"Need water supply info"
+box-shadow: 0 0 20px red;
 
-];
+z-index: 999999;
 
-demoPosts.forEach(msg=>{
-
-document.getElementById("text").value=msg;
-
-createPost();
-
-});
-
-document.getElementById("text").value="";
+animation: pulseEmergency 1.2s infinite;
 
 }
 
-</script>
+/* Glow Pulse */
 
+@keyframes pulseEmergency {
+
+0% { box-shadow: 0 0 10px red; }
+
+50% { box-shadow: 0 0 30px red; }
+
+100% { box-shadow: 0 0 10px red; }
+
+}
+
+</style>
 </body>
 </html>
+

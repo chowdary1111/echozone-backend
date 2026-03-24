@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>EchoZone Emergency</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+
+/* 🔴🔵 FULL PAGE ALARM BACKGROUND */
+
+body {
+
+margin: 0;
+
+height: 100vh;
+
+display: flex;
+
+justify-content: center;
+align-items: center;
+
+font-family: Arial, sans-serif;
+
+/* flashing red-blue */
+
+animation: bgFlash 1s infinite;
+
+}
+
+
+/* Background Flash */
+
+@keyframes bgFlash {
+
+0% { background: #001f3f; }   /* Blue */
+
+50% { background: #8b0000; }  /* Red */
+
+100% { background: #001f3f; }
+
+}
+
+
+
+/* Main Container */
+
+.container {
+
+text-align: center;
+
+color: white;
+
+}
+
+
+
+/* 🚨 Title */
+
+.title {
+
+font-size: 42px;
+
+font-weight: bold;
+
+margin-bottom: 10px;
+
+}
+
+
+
+/* Status Text */
+
+.status {
+
+font-size: 18px;
+
+opacity: 0.9;
+
+margin-bottom: 30px;
+
+}
+
+
+
+/* 🔵🔴 Emergency Circle */
+
+.emergency-circle {
+
+width: 180px;
+
+height: 180px;
+
+border-radius: 50%;
+
+background: black;
+
+display: flex;
+
+justify-content: center;
+align-items: center;
+
+cursor: pointer;
+
+/* Pulse animation */
+
+animation: pulseRing 1.5s infinite;
+
+}
+
+
+/* Pulse Effect */
+
+@keyframes pulseRing {
+
+0% {
+
+box-shadow: 0 0 10px red;
+
+}
+
+50% {
+
+box-shadow: 0 0 40px blue;
+
+}
+
+100% {
+
+box-shadow: 0 0 10px red;
+
+}
+
+}
+
+
+
+/* Button Text */
+
+.circle-text {
+
+font-size: 22px;
+
+font-weight: bold;
+
+}
+
+
+
+/* Countdown */
+
+#countdown {
+
+font-size: 24px;
+
+margin-top: 25px;
+
+display: none;
+
+}
+
+
+
+/* Cancel Button */
+
+.cancel-btn {
+
+margin-top: 25px;
+
+padding: 12px 25px;
+
+border: none;
+
+border-radius: 30px;
+
+background: black;
+
+color: white;
+
+font-size: 16px;
+
+cursor: pointer;
+
+display: none;
+
+}
+
+
+
+/* Back Button */
+
+.back-btn {
+
+position: absolute;
+
+top: 20px;
+
+left: 20px;
+
+padding: 10px 18px;
+
+border: none;
+
+border-radius: 20px;
+
+background: black;
+
+color: white;
+
+cursor: pointer;
+
+}
+
+</style>
+
+</head>
+
+
+
+<body>
+ 
+
+
+<!-- 🔙 Back Button -->
+
+<button class="back-btn"
+onclick="goBack()">
+
+⬅ Back
+
+</button>
+
+
+
+<div class="container">
+
+<div class="title">
+
+🚨 EMERGENCY MODE 🚨
+
+</div>
+
+<div class="status">
+
+Hold the circle to activate emergency
+
+</div>
+
+
+
+<!-- 🚨 Main Emergency Button -->
+
+<div class="emergency-circle hold-button"
+
+onmousedown="startHold()"
+onmouseup="cancelHold()"
+ontouchstart="startHold()"
+ontouchend="cancelHold()">
+
+<div class="circle-text">
+
+HOLD
+
+</div>
+
+</div>
+
+
+
+<div id="countdown">
+
+Activating in
+<span id="time">10</span>
+seconds...
+
+</div>
+
+
+
+<button id="cancel-btn"
+class="cancel-btn"
+onclick="cancelEmergency()">
+
+Cancel Emergency
+
+</button>
+
+</div>
+
+
+
+<!-- 🔊 Alarm Sound -->
+
+
+<audio id="alarmSound" loop>
+<source src="/audio.mp3" type="audio/mpeg">
+</audio>
+
+
+<script>
+
+let holdTimer;
+let countdown;
+let seconds = 10;
+
+let alarm =
+document.getElementById("alarmSound");
+
+
+
+/* Start Hold */
+
+function startHold() {
+
+document.getElementById("countdown")
+.style.display = "block";
+
+document.querySelector(".cancel-btn")
+.style.display = "inline-block";
+
+holdTimer = setTimeout(() => {
+
+startCountdown();
+
+}, 2000);
+
+}
+
+
+
+/* Cancel Hold */
+
+function cancelHold() {
+
+clearTimeout(holdTimer);
+
+}
+
+
+
+/* Countdown */
+
+function startCountdown() {
+
+alarm.play();
+
+countdown = setInterval(() => {
+
+seconds--;
+
+document.getElementById("time")
+.innerText = seconds;
+
+if (seconds === 0) {
+
+clearInterval(countdown);
+
+activateEmergency();
+
+}
+
+}, 1000);
+
+}
+
+
+
+/* Cancel Emergency */
+
+function cancelEmergency() {
+
+clearTimeout(holdTimer);
+
+clearInterval(countdown);
+
+alarm.pause();
+
+alarm.currentTime = 0;
+
+seconds = 10;
+
+document.getElementById("time")
+.innerText = seconds;
+
+document.getElementById("countdown")
+.style.display = "none";
+
+document.querySelector(".cancel-btn")
+.style.display = "none";
+
+}
+
+
+
+/* Activate Emergency */
+
+function activateEmergency() {
+
+alarm.pause();
+
+alert("🚨 Emergency Activated");
+
+// Next: location + nearby users
+
+}
+
+
+
+/* Back Button */
+
+function goBack() {
+
+window.history.back();
+
+}
+
+
+/* Cancel Emergency Button */
+
+document
+.getElementById("cancel-btn")
+.addEventListener("click", function () {
+
+clearInterval(countdown);
+
+alarm.pause();
+
+seconds = 10;
+
+document.getElementById("time")
+.innerText = seconds;
+
+document.getElementById("countdown")
+.style.display = "none";
+
+document.querySelector(".cancel-btn")
+.style.display = "none";
+
+});
+
+
+
+</script>
+ 
+
+<audio id="alarmSound" loop>
+  <source src="/audio.mp3" type="audio/mpeg">
+</audio>
+
+
+
+<button onclick="stopAlarm()" id="stopBtn">
+🛑 STOP ALARM
+</button>
+
+
+<script src="emergency.js"></script>
+
+
+</body>
+
+</html>

@@ -1,136 +1,108 @@
-function openApp() {
+/* =========================
+   OPEN APP
+========================= */
 
- document.getElementById("landingPage").style.display = "none";
+function openApp(){
 
- document.getElementById("appPage").style.display = "block";
+document.getElementById("landing").style.display="none";
 
- loadPosts();
-
-}
-
-/* LOAD POSTS */
-
-async function loadPosts() {
-
- try {
-
-  const res = await fetch("/posts");
-
-  const posts = await res.json();
-
-  const container = document.getElementById("posts");
-
-  container.innerHTML = "";
-
-  posts.forEach(p => {
-
-   const div = document.createElement("div");
-
-   div.className = "post";
-
-   const text = document.createElement("p");
-   text.innerText = p.text;
-
-   const loc = document.createElement("small");
-   loc.innerText = "📍 " + p.location;
-
-   const time = document.createElement("small");
-
-   const postTime = new Date(p.createdAt);
-
-   time.innerText =
-    "🕒 " + postTime.toLocaleString("en-IN");
-
-   time.style.display = "block";
-   time.style.fontSize = "12px";
-   time.style.color = "gray";
-
-   div.appendChild(text);
-   div.appendChild(loc);
-   div.appendChild(time);
-/* DELETE BUTTON */
-
-const delBtn =
- document.createElement("button");
-
-delBtn.innerText = "🗑 Delete";
-
-delBtn.onclick = async () => {
-
- await fetch("/posts/" + p._id, {
-  method: "DELETE"
- });
-
- loadPosts();
-
-};
-
-div.appendChild(delBtn);
-
-   container.appendChild(div);
-
-  });
-
- } catch (err) {
-
-  console.log("Load error:", err);
-
- }
+document.getElementById("appPage").style.display="block";
 
 }
 
-/* CREATE POST */
+/* =========================
+   CREATE POST
+========================= */
 
-async function createPost() {
+function createPost(){
 
- const text =
- document.getElementById("text").value;
+let text=document.getElementById("text").value;
 
- if (!text) return;
+if(text.trim()=="") return;
 
- navigator.geolocation.getCurrentPosition(
+/* Fake distance generator */
 
- async position => {
+let distance=Math.floor(
+Math.random()*50
+)+1;
 
-  const lat = position.coords.latitude;
-  const lon = position.coords.longitude;
+/* Timestamp */
 
-  const location = lat + "," + lon;
+let time=new Date().toLocaleTimeString();
 
-  await fetch("/posts", {
+/* Create Post */
 
-   method: "POST",
+let post=document.createElement("div");
 
-   headers: {
-    "Content-Type": "application/json"
-   },
+post.className="post";
 
-   body: JSON.stringify({
-    text: text,
-    location: location,
-    type: "general",
-    user: "anonymous"
-   })
+post.innerHTML=`
 
-  });
+${text}
 
-  document.getElementById("text").value = "";
+<div class="distance">
 
-  loadPosts();
+📍 ${distance} km away
 
- },
+</div>
 
- error => {
+<div class="time">
 
-  alert("Location permission required to post 📍");
+${time}
 
- }
+</div>
 
- );
+<button class="delete-btn"
+onclick="this.parentElement.remove()">
+
+Delete
+
+</button>
+
+`;
+
+document
+.getElementById("posts")
+.prepend(post);
+
+document.getElementById("text").value="";
 
 }
 
+/* =========================
+   AUTO DEMO POSTS
+========================= */
 
-/* LOAD POSTS ON START */
+window.onload=function(){
 
-loadPosts();
+let demoPosts=[
+
+"Anyone nearby hospital?",
+"Power outage in my street",
+"Lost dog spotted",
+"Need water supply info"
+
+];
+
+demoPosts.forEach(msg=>{
+
+document.getElementById("text").value=msg;
+
+createPost();
+
+});
+
+document.getElementById("text").value="";
+
+}
+
+/* ===========================
+   OPEN EMERGENCY PAGE
+=========================== */
+
+function openEmergency(){
+
+window.location.href = "emergency.html";
+
+}  
+
