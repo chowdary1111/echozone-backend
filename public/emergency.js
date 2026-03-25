@@ -1,76 +1,137 @@
 // emergency.js
 
-const holdCircle = document.getElementById('holdCircle');
-const stopAlarmBtn = document.getElementById('stopAlarm');
-const emergencySound = document.getElementById('emergencySound');
+const holdCircle = document.getElementById("holdCircle");
+const stopBtn = document.getElementById("stopAlarm");
+const sound = document.getElementById("emergencySound");
 
-let holdTimer = null;
-let vibrationInterval = null;
-const HOLD_DURATION = 2500;
+let holdTimer;
+let isHolding = false;
 
-function canVibrate() {
-  return 'vibrate' in navigator;
-}
+/* MOBILE SOUND SETTINGS */
 
-function shortHaptic() {
-  if (canVibrate()) navigator.vibrate(60);
-}
+sound.loop = true;
+sound.volume = 1.0;
 
-function startPulsingHaptic() {
-  if (!canVibrate()) return;
-  stopHaptic();
-  vibrationInterval = setInterval(() => navigator.vibrate([90, 130]), 420);
-}
+/* START HOLD */
 
-function stopHaptic() {
-  if (canVibrate()) navigator.vibrate(0);
-  if (vibrationInterval) clearInterval(vibrationInterval);
-}
+function startHold() {
 
-function activationHaptic() {
-  if (canVibrate()) navigator.vibrate([180, 90, 280, 120, 180]);
-}
+  isHolding = true;
 
-function playEmergencySound() {
-  emergencySound.volume = 1;
-  emergencySound.loop = true;
-  emergencySound.play().catch(err => console.error("Sound blocked:", err));
-}
+  holdCircle.classList.add("holding");
 
-function stopEmergencySound() {
-  emergencySound.pause();
-  emergencySound.currentTime = 0;
-}
+  // Start vibration immediately
+  startVibration();
 
-function startHold(e) {
-  e.preventDefault();
-  shortHaptic();
-  startPulsingHaptic();
-
+  // Start sound after hold time
   holdTimer = setTimeout(() => {
-    stopHaptic();
-    activationHaptic();
-    console.log("🚨 EMERGENCY ACTIVATED!");
-    playEmergencySound();
-    alert("🚨 EMERGENCY ACTIVATED!\nSound is playing.");
-  }, HOLD_DURATION);
+
+    playSound();
+
+  }, 2500); // 2.5 sec hold
+
 }
+
+/* CANCEL HOLD */
 
 function cancelHold() {
-  stopHaptic();
-  if (holdTimer) clearTimeout(holdTimer);
+
+  isHolding = false;
+
+  holdCircle.classList.remove("holding");
+
+  clearTimeout(holdTimer);
+
+  stopVibration();
+
 }
 
-holdCircle.addEventListener('mousedown', startHold);
-holdCircle.addEventListener('touchstart', startHold);
-holdCircle.addEventListener('mouseup', cancelHold);
-holdCircle.addEventListener('mouseleave', cancelHold);
-holdCircle.addEventListener('touchend', cancelHold);
-holdCircle.addEventListener('touchcancel', cancelHold);
+/* PLAY SOUND */
 
-stopAlarmBtn.addEventListener('click', () => {
-  cancelHold();
-  stopEmergencySound();
-  if (canVibrate()) navigator.vibrate([70, 50, 70]);
-  alert("Emergency stopped.");
+function playSound() {
+
+  sound.currentTime = 0;
+
+  sound.play()
+    .then(() => {
+
+      console.log("Sound playing");
+
+    })
+    .catch((err) => {
+
+      console.log("Sound blocked:", err);
+
+    });
+
+}
+
+/* STOP SOUND */
+
+function stopSound() {
+
+  sound.pause();
+
+  sound.currentTime = 0;
+
+}
+
+/* MOBILE VIBRATION */
+
+function startVibration() {
+
+  if ("vibrate" in navigator) {
+
+    navigator.vibrate([
+      300,
+      100,
+      300,
+      100,
+      600
+    ]);
+
+  }
+
+}
+
+function stopVibration() {
+
+  if ("vibrate" in navigator) {
+
+    navigator.vibrate(0);
+
+  }
+
+}
+
+/* TOUCH EVENTS (Mobile) */
+
+holdCircle.addEventListener("touchstart", (e) => {
+
+  e.preventDefault();
+
+  startHold();
+
+});
+
+holdCircle.addEventListener("touchend", cancelHold);
+
+holdCircle.addEventListener("touchcancel", cancelHold);
+
+/* MOUSE EVENTS (Laptop) */
+
+holdCircle.addEventListener("mousedown", startHold);
+
+holdCircle.addEventListener("mouseup", cancelHold);
+
+holdCircle.addEventListener("mouseleave", cancelHold);
+
+/* STOP BUTTON */
+
+stopBtn.addEventListener("click", () => {
+
+  stopSound();
+
+  stopVibration();
+
 });
