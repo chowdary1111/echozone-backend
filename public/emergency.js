@@ -83,11 +83,13 @@ function startVibration() {
   if ("vibrate" in navigator) {
 
     navigator.vibrate([
-      300,
-      100,
-      300,
-      100,
-      600
+      400,
+      200,
+      400,
+      200,
+      800,
+      200,
+      400
     ]);
 
   }
