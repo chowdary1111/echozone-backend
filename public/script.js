@@ -2,107 +2,156 @@
    OPEN APP
 ========================= */
 
-function openApp(){
+function openApp() {
 
-document.getElementById("landing").style.display="none";
+  document.getElementById("landing").style.display = "none";
 
-document.getElementById("appPage").style.display="block";
+  document.getElementById("appPage").style.display = "block";
 
-}
-
-/* =========================
-   CREATE POST
-========================= */
-
-function createPost(){
-
-let text=document.getElementById("text").value;
-
-if(text.trim()=="") return;
-
-/* Fake distance generator */
-
-let distance=Math.floor(
-Math.random()*50
-)+1;
-
-/* Timestamp */
-
-let time=new Date().toLocaleTimeString();
-
-/* Create Post */
-
-let post=document.createElement("div");
-
-post.className="post";
-
-post.innerHTML=`
-
-${text}
-
-<div class="distance">
-
-📍 ${distance} km away
-
-</div>
-
-<div class="time">
-
-${time}
-
-</div>
-
-<button class="delete-btn"
-onclick="this.parentElement.remove()">
-
-Delete
-
-</button>
-
-`;
-
-document
-.getElementById("posts")
-.prepend(post);
-
-document.getElementById("text").value="";
+  loadPosts(); // Load posts when app opens
 
 }
 
 /* =========================
-   AUTO DEMO POSTS
+   CREATE POST (SEND TO SERVER)
 ========================= */
 
-window.onload=function(){
+async function createPost() {
 
-let demoPosts=[
+  let textInput = document.getElementById("text");
 
-"Anyone nearby hospital?",
-"Power outage in my street",
-"Lost dog spotted",
-"Need water supply info"
+  let text = textInput.value.trim();
 
-];
+  if (text === "") return;
 
-demoPosts.forEach(msg=>{
+  try {
 
-document.getElementById("text").value=msg;
+    const response = await fetch("/posts", {
 
-createPost();
+      method: "POST",
 
-});
+      headers: {
+        "Content-Type": "application/json"
+      },
 
-document.getElementById("text").value="";
+      body: JSON.stringify({
+
+        text: text,
+        location: "Nearby",
+        type: "normal",
+        user: "anonymous"
+
+      })
+
+    });
+
+    if (response.ok) {
+
+      textInput.value = "";
+
+      loadPosts(); // Reload posts
+
+    }
+
+  } catch (error) {
+
+    console.log("Error creating post:", error);
+
+  }
 
 }
 
-/* ===========================
-   OPEN EMERGENCY PAGE
-=========================== */
+/* =========================
+   LOAD POSTS FROM SERVER
+========================= */
 
-function openEmergency(){
+async function loadPosts() {
 
-window.location.href = "emergency.html";
+  try {
 
-}  
+    const response = await fetch("/posts");
+
+    const posts = await response.json();
+
+    const postsContainer =
+      document.getElementById("posts");
+
+    postsContainer.innerHTML = "";
+
+    posts.forEach(post => {
+
+      let distance =
+        Math.floor(Math.random() * 50) + 1;
+
+      let time =
+        new Date(post.createdAt)
+        .toLocaleTimeString();
+
+      let div =
+        document.createElement("div");
+
+      div.className = "post";
+
+      div.innerHTML = `
+
+        ${post.text}
+
+        <div class="distance">
+          📍 ${distance} km away
+        </div>
+
+        <div class="time">
+          ${time}
+        </div>
+
+        <button class="delete-btn"
+          onclick="deletePost('${post._id}')">
+
+          Delete
+
+        </button>
+
+      `;
+
+      postsContainer.prepend(div);
+
+    });
+
+  } catch (error) {
+
+    console.log("Error loading posts:", error);
+
+  }
+
+}
+
+/* =========================
+   DELETE POST
+========================= */
+
+async function deletePost(id) {
+
+  try {
+
+    await fetch("/posts/" + id, {
+
+      method: "DELETE"
+
+    });
+
+    loadPosts();
+
+  } catch (error) {
+
+    console.log("Delete failed:", error);
+
+  }
+
+}
+
+/* =========================
+   AUTO REFRESH POSTS
+========================= */
+
+setInterval(loadPosts, 5000);
 
