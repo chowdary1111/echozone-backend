@@ -8,6 +8,8 @@ const Post = require("./models/Post");
 
 const app = express();
 
+
+
 /* -------- MIDDLEWARE -------- */
 
 app.use(express.json());

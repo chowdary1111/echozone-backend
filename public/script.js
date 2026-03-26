@@ -155,7 +155,7 @@ async function deletePost(id) {
 
 setInterval(loadPosts, 5000);
 
-function openEmergency() {
-   window.location.href = " Emergency.html";
+function openemergency() {
+   window.location.href = " emergency.html";
 }
 
