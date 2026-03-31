@@ -1,509 +1,560 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<title>Echozone</title>
+   <meta charset="UTF-8">
+   <title>Echozone</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&family=Montserrat:wght@300;400&display=swap" rel="stylesheet">
-<style>
-
-/* =========================
+   <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&family=Montserrat:wght@300;400&display=swap"
+      rel="stylesheet">
+   <style>
+      /* =========================
    BODY + BACKGROUND
 ========================= */
 
-body{
-margin:0;
-font-family: 'Segoe UI', Arial;
-height:100vh;
-background:
-radial-gradient(circle at 20% 30%, #111, #000);
-color:white;
-overflow-x:hidden;
-}
+      body {
+         margin: 0;
+         font-family: 'Segoe UI', Arial;
+         height: 100vh;
+         background:
+            radial-gradient(circle at 20% 30%, #111, #000);
+         color: white;
+         overflow-x: hidden;
+      }
 
-/* Echozone Title Style */
+      /* Echozone Title Style */
 
-h1 {
+      h1 {
 
-font-family:'Orbitron', sans-serif;
+         font-family: 'Orbitron', sans-serif;
 
-font-size: 72px;
+         font-size: 72px;
 
-letter-spacing: 8px;
+         letter-spacing: 8px;
 
-font-weight:600;
+         font-weight: 600;
 
-text-shadow:
-0 0 10px rgba(0,240,255,0.6),
-0 0 20px rgba(255,0,255,0.4);
+         text-shadow:
+            0 0 10px rgba(0, 240, 255, 0.6),
+            0 0 20px rgba(255, 0, 255, 0.4);
 
-}
+      }
 
-/* Floating particles */
+      /* Floating particles */
 
-body::before{
-content:"";
-position:fixed;
-width:200%;
-height:200%;
-background-image:
-radial-gradient(#ffd700 1px, transparent 1px);
-background-size:40px 40px;
-opacity:0.15;
-animation:moveParticles 30s linear infinite;
-z-index:-1;
-}
+      body::before {
+         content: "";
+         position: fixed;
+         width: 200%;
+         height: 200%;
+         background-image:
+            radial-gradient(#ffd700 1px, transparent 1px);
+         background-size: 40px 40px;
+         opacity: 0.15;
+         animation: moveParticles 30s linear infinite;
+         z-index: -1;
+      }
 
-@keyframes moveParticles{
-0%{transform:translate(0,0);}
-100%{transform:translate(-600px,600px);}
-}
+      @keyframes moveParticles {
+         0% {
+            transform: translate(0, 0);
+         }
 
-/* =========================
+         100% {
+            transform: translate(-600px, 600px);
+         }
+      }
+
+      /* =========================
    LANDING PAGE
 ========================= */
 
-.echo-core{
-height:100vh;
-display:flex;
-flex-direction:column;
-align-items:center;
-justify-content:center;
-text-align:center;
-}
+      .echo-core {
+         height: 100vh;
+         display: flex;
+         flex-direction: column;
+         align-items: center;
+         justify-content: center;
+         text-align: center;
+      }
 
-/* Title */
+      /* Title */
 
-h1{
-font-size:55px;
-margin:10px;
+      h1 {
+         font-size: 55px;
+         margin: 10px;
 
-background:linear-gradient(
-90deg,
-#ffd700,
-#ff9900,
-#00ffff,
-#ff00ff,
-#ffd700
-);
+         background: linear-gradient(90deg,
+               #ffd700,
+               #ff9900,
+               #00ffff,
+               #ff00ff,
+               #ffd700);
 
-background-size:300%;
+         background-size: 300%;
 
--webkit-background-clip:text;
--webkit-text-fill-color:transparent;
+         -webkit-background-clip: text;
+         -webkit-text-fill-color: transparent;
 
-animation:titleFlow 6s linear infinite;
-}
+         animation: titleFlow 6s linear infinite;
+      }
 
-@keyframes titleFlow{
-0%{background-position:0%;}
-100%{background-position:300%;}
-}
+      @keyframes titleFlow {
+         0% {
+            background-position: 0%;
+         }
 
-/* Big Landing Tagline */
+         100% {
+            background-position: 300%;
+         }
+      }
 
-.tagline{
-font-size:18px;
-opacity:0.8;
-margin-bottom:20px;
-}
+      /* Big Landing Tagline */
 
-/* Button */
+      .tagline {
+         font-size: 18px;
+         opacity: 0.8;
+         margin-bottom: 20px;
+      }
 
-button{
-padding:12px 28px;
-border:none;
-border-radius:30px;
+      /* Button */
 
-font-size:16px;
-font-weight:bold;
+      button {
+         padding: 12px 28px;
+         border: none;
+         border-radius: 30px;
 
-background:linear-gradient(
-90deg,
-#ffd700,
-#ff9900
-);
+         font-size: 16px;
+         font-weight: bold;
 
-color:black;
+         background: linear-gradient(90deg,
+               #ffd700,
+               #ff9900);
 
-cursor:pointer;
+         color: black;
 
-transition:0.3s;
-}
+         cursor: pointer;
 
-button:hover{
-transform:scale(1.08);
-box-shadow:0 0 15px #ffd700;
-}
+         transition: 0.3s;
+      }
 
-/* =========================
+      button:hover {
+         transform: scale(1.08);
+         box-shadow: 0 0 15px #ffd700;
+      }
+
+      /* =========================
    APP PAGE
 ========================= */
 
-#appPage{
-display:none;
-padding:20px;
-}
+      #appPage {
+         display: none;
+         padding: 20px;
+      }
 
-/* Small moving tagline */
+      /* Small moving tagline */
 
-.moving-tagline{
-width:100%;
-overflow:hidden;
-height:40px;
-margin-bottom:20px;
-position:relative;
-}
+      .moving-tagline {
+         width: 100%;
+         overflow: hidden;
+         height: 40px;
+         margin-bottom: 20px;
+         position: relative;
+      }
 
-.moving-tagline span{
+      .moving-tagline span {
 
-position:absolute;
+         position: absolute;
 
-white-space:nowrap;
+         white-space: nowrap;
 
-font-size:22px;
-font-weight:bold;
+         font-size: 22px;
+         font-weight: bold;
 
-background:linear-gradient(
-90deg,
-#ffd700,
-#00ffff,
-#ff00ff,
-#ffd700
-);
+         background: linear-gradient(90deg,
+               #ffd700,
+               #00ffff,
+               #ff00ff,
+               #ffd700);
 
-background-size:300%;
+         background-size: 300%;
 
--webkit-background-clip:text;
--webkit-text-fill-color:transparent;
+         -webkit-background-clip: text;
+         -webkit-text-fill-color: transparent;
 
-animation:
-moveText 12s linear infinite,
-colorShift 6s linear infinite;
-}
+         animation:
+            moveText 12s linear infinite,
+            colorShift 6s linear infinite;
+      }
 
-@keyframes moveText{
-0%{transform:translateX(100%);}
-100%{transform:translateX(-100%);}
-}
+      @keyframes moveText {
+         0% {
+            transform: translateX(100%);
+         }
 
-@keyframes colorShift{
-0%{background-position:0%;}
-100%{background-position:300%;}
-}
+         100% {
+            transform: translateX(-100%);
+         }
+      }
 
-/* =========================
+      @keyframes colorShift {
+         0% {
+            background-position: 0%;
+         }
+
+         100% {
+            background-position: 300%;
+         }
+      }
+
+      /* =========================
    POST BOX
 ========================= */
 
-.post-container{
+      .post-container {
 
-background:rgba(255,255,255,0.05);
+         background: rgba(255, 255, 255, 0.05);
 
-backdrop-filter:blur(10px);
+         backdrop-filter: blur(10px);
 
-border-radius:15px;
+         border-radius: 15px;
 
-padding:15px;
+         padding: 15px;
 
-margin-bottom:20px;
+         margin-bottom: 20px;
 
-box-shadow:0 0 15px rgba(255,255,255,0.1);
-}
+         box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+      }
 
-/* Textarea */
+      /* Textarea */
 
-textarea{
+      textarea {
 
-width:100%;
-height:70px;
+         width: 100%;
+         height: 70px;
 
-background:rgba(0,0,0,0.5);
+         background: rgba(0, 0, 0, 0.5);
 
-border:none;
+         border: none;
 
-border-radius:10px;
+         border-radius: 10px;
 
-padding:10px;
+         padding: 10px;
 
-color:white;
+         color: white;
 
-font-size:14px;
+         font-size: 14px;
 
-resize:none;
+         resize: none;
 
-outline:none;
-}
+         outline: none;
+      }
 
-/* =========================
+      /* =========================
    POSTS
 ========================= */
 
-.post{
+      .post {
 
-background:rgba(255,255,255,0.05);
+         background: rgba(255, 255, 255, 0.05);
 
-border-radius:15px;
+         border-radius: 15px;
 
-padding:12px;
+         padding: 12px;
 
-margin-bottom:12px;
+         margin-bottom: 12px;
 
-animation:fadeIn 0.4s ease;
+         animation: fadeIn 0.4s ease;
 
-position:relative;
+         position: relative;
 
-box-shadow:0 0 12px rgba(0,0,0,0.6);
-}
+         box-shadow: 0 0 12px rgba(0, 0, 0, 0.6);
+      }
 
-@keyframes fadeIn{
-from{
-opacity:0;
-transform:translateY(10px);
-}
-to{
-opacity:1;
-transform:translateY(0);
-}
-}
+      @keyframes fadeIn {
+         from {
+            opacity: 0;
+            transform: translateY(10px);
+         }
 
-/* Delete button */
+         to {
+            opacity: 1;
+            transform: translateY(0);
+         }
+      }
 
-.delete-btn{
+      /* Delete button */
 
-position:absolute;
-right:10px;
-top:10px;
+      .delete-btn {
 
-background:red;
-color:white;
+         position: absolute;
+         right: 10px;
+         top: 10px;
 
-border:none;
+         background: red;
+         color: white;
 
-padding:5px 10px;
+         border: none;
 
-border-radius:20px;
+         padding: 5px 10px;
 
-cursor:pointer;
-}
+         border-radius: 20px;
 
-/* Distance Badge */
+         cursor: pointer;
+      }
 
-.distance{
+      /* Distance Badge */
 
-font-size:12px;
+      .distance {
 
-opacity:0.7;
+         font-size: 12px;
 
-margin-top:5px;
-}
+         opacity: 0.7;
 
-/* Timestamp */
+         margin-top: 5px;
+      }
 
-.time{
+      /* Timestamp */
 
-font-size:11px;
+      .time {
 
-opacity:0.5;
-}
+         font-size: 11px;
 
-/* =========================
+         opacity: 0.5;
+      }
+
+      /* =========================
    MOBILE SUPPORT
 ========================= */
 
-@media(max-width:600px){
+      @media(max-width:600px) {
 
-h1{
-font-size:40px;
-}
+         h1 {
+            font-size: 40px;
+         }
 
-textarea{
-height:60px;
-}
+         textarea {
+            height: 60px;
+         }
 
-}
+      }
 
-/* CINEMATIC SCROLL TAGLINE */
+      /* CINEMATIC SCROLL TAGLINE */
 
-.tagline-container {
+      .tagline-container {
 
-width:100%;
-overflow:hidden;
+         width: 100%;
+         overflow: hidden;
 
-margin-top:30px;
-margin-bottom:25px;
+         margin-top: 30px;
+         margin-bottom: 25px;
 
-}
+      }
 
-.tagline {
+      .tagline {
 
-display:inline-block;
+         display: inline-block;
 
-white-space:nowrap;
+         white-space: nowrap;
 
-font-size:44px;
-font-weight:300;
-font-family:'Montserrat', sans-serif;
-opacity:0.55;
-letter-spacing:5px;
+         font-size: 44px;
+         font-weight: 300;
+         font-family: 'Montserrat', sans-serif;
+         opacity: 0.55;
+         letter-spacing: 5px;
 
-padding-left:100%;
+         padding-left: 100%;
 
-background:linear-gradient(
-90deg,
-#00f0ff,
-#ff00ff,
-#00ff88,
-#00f0ff
-);
+         background: linear-gradient(90deg,
+               #00f0ff,
+               #ff00ff,
+               #00ff88,
+               #00f0ff);
 
-background-size:300%;
+         background-size: 300%;
 
--webkit-background-clip:text;
--webkit-text-fill-color:transparent;
+         background-clip: text;
+         -webkit-background-clip: text;
+         -webkit-text-fill-color: transparent;
 
-animation:
-scrollTagline 24s linear infinite,
-glowColors 6s linear infinite;
+         animation:
+            scrollTagline 24s linear infinite,
+            glowColors 6s linear infinite;
 
-}
+      }
 
-@keyframes scrollTagline {
+      @keyframes scrollTagline {
 
-from {
-transform: translateX(0%);
-}
+         from {
+            transform: translateX(0%);
+         }
 
-to {
-transform: translateX(-100%);
-}
+         to {
+            transform: translateX(-100%);
+         }
 
-}
+      }
 
-@keyframes glowColors {
+      @keyframes glowColors {
 
-0% {
-background-position:0%;
-}
+         0% {
+            background-position: 0%;
+         }
 
-100% {
-background-position:300%;
-}
+         100% {
+            background-position: 300%;
+         }
 
-}
+      }
 
+      /* =========================
+   EMERGENCY POSTS
+========================= */
 
+      .post.emergency {
+         background: rgba(239, 68, 68, 0.12);
+         border: 1px solid rgba(239, 68, 68, 0.5);
+         box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+         animation: fadeIn 0.4s ease, emergencyPulse 2s ease-in-out infinite;
+      }
 
-</style>
+      @keyframes emergencyPulse {
+         0%, 100% {
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.3);
+         }
+         50% {
+            box-shadow: 0 0 30px rgba(239, 68, 68, 0.6);
+         }
+      }
+
+      .emergency-badge {
+         display: inline-block;
+         background: linear-gradient(90deg, #ef4444, #dc2626);
+         color: white;
+         padding: 4px 12px;
+         border-radius: 20px;
+         font-size: 11px;
+         font-weight: bold;
+         letter-spacing: 1px;
+         margin-bottom: 8px;
+      }
+
+      .emergency-text {
+         font-size: 16px;
+         font-weight: 600;
+         margin-bottom: 6px;
+      }
+   </style>
 </head>
 
 <body>
 
-<!-- =========================
+   <!-- =========================
      LANDING PAGE
 ========================= -->
 
-<div class="echo-core" id="landing">
+   <div class="echo-core" id="landing">
 
-<h1>Echozone</h1>
+      <h1>Echozone</h1>
 
-<p class="tagline">
-  • Fear Ends When Echo Begins • Help Starts Here • Anonymous Not Alone  • Echozone __ where Voices Travel 
-</p>
+      <p class="tagline">
+         • Fear Ends When Echo Begins • Help Starts Here • Anonymous Not Alone
+      </p>
 
-<button onclick="openApp()">
-Enter Echozone
-</button>
+      <button onclick="openApp()">
+         Enter Echozone
+      </button>
 
-</div>
+   </div>
 
-<!-- =========================
+   <!-- =========================
      APP PAGE
 ========================= -->
 
-<div id="appPage" style="display:none;">
+   <div id="appPage" style="display:none;">
 
-<h1>Echozone</h1>
+      <h1>Echozone</h1>
 
-<div class="moving-tagline">
-<span>
-Ask Something Nearby • Share Updates • Stay Connected •
-</span>
-</div>
+      <div class="moving-tagline">
+         <span>
+            Ask Something Nearby • Share Updates • Stay Connected •
+         </span>
+      </div>
 
-<div class="post-container">
+      <div class="post-container">
 
-<textarea
-id="text"
-placeholder="Ask something nearby..."
-></textarea>
+         <textarea id="text" placeholder="Ask something nearby..."></textarea>
 
-<br><br>
+         <br><br>
 
-<button onclick="createPost()">
-Post
-</button>
+         <button onclick="createPost()">
+            Post
+         </button>
 
-</div>
+      </div>
 
-<div id="posts"></div>
+      <div id="posts"></div>
 
-</div>
+   </div>
 
-<!-- LOAD SCRIPT -->
-<script src="./script.js"></script>
+   <!-- LOAD SCRIPT -->
+   <script src="/socket.io/socket.io.js"></script>
+   <script src="./script.js"></script>
 
 
 
-<!-- 🚨 EMERGENCY FLOAT BUTTON -->
-<button 
-onclick="openemergency()"
-id="emergencyBtn">
+   <!-- 🚨 EMERGENCY FLOAT BUTTON -->
+   <button onclick="openemergency()" id="emergencyBtn">
 
-🚨 EMERGENCY
- 
-</button>
+      🚨 EMERGENCY
 
-<style>
+   </button>
 
-#emergencyBtn {
+   <style>
+      #emergencyBtn {
 
-position: fixed;
-bottom: 25px;
-right: 25px;
+         position: fixed;
+         bottom: 25px;
+         right: 25px;
 
-background: red;
-color: white;
+         background: red;
+         color: white;
 
-padding: 14px 22px;
+         padding: 14px 22px;
 
-border: none;
-border-radius: 50px;
+         border: none;
+         border-radius: 50px;
 
-font-weight: bold;
-cursor: pointer;
+         font-weight: bold;
+         cursor: pointer;
 
-box-shadow: 0 0 20px red;
+         box-shadow: 0 0 20px red;
 
-z-index: 999999;
+         z-index: 999999;
 
-animation: pulseEmergency 1.2s infinite;
+         animation: pulseEmergency 1.2s infinite;
 
-}
+      }
 
-/* Glow Pulse */
+      /* Glow Pulse */
 
-@keyframes pulseEmergency {
+      @keyframes pulseEmergency {
 
-0% { box-shadow: 0 0 10px red; }
+         0% {
+            box-shadow: 0 0 10px red;
+         }
 
-50% { box-shadow: 0 0 30px red; }
+         50% {
+            box-shadow: 0 0 30px red;
+         }
 
-100% { box-shadow: 0 0 10px red; }
+         100% {
+            box-shadow: 0 0 10px red;
+         }
 
-}
-
-</style>
+      }
+   </style>
 </body>
-</html>
 
+</html>
