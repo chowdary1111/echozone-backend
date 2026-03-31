@@ -338,16 +338,13 @@ async function deletePost(id) {
 }
 
 /* =========================
-   REAL-TIME WEBSOCKETS
+   AUTO REFRESH POSTS
 ========================= */
 
-const socket = io();
-
-socket.on('postsUpdated', () => {
-  if (document.getElementById("appPage").style.display !== "none") {
-    loadPosts();
-  }
-});
+// Fallback to strict HTTP auto-polling every 5 seconds since 
+// WebSocket connections are notoriously dropped by free-tier 
+// cloud providers like Render.
+setInterval(loadPosts, 5000);
 
 function openemergency() {
   window.location.href = "emergency.html";

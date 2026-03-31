@@ -3,24 +3,10 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
-const http = require("http");
-const { Server } = require("socket.io");
 
 const Post = require("./models/Post");
 
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server, {
-  cors: { origin: "*" }
-});
-
-// Broadcast changes
-io.on("connection", (socket) => {
-  console.log("A user connected via WebSocket");
-  socket.on("disconnect", () => {
-    console.log("User disconnected");
-  });
-});
 
 
 
@@ -104,8 +90,6 @@ app.post("/posts", async (req, res) => {
   });
 
   await post.save();
-
-  io.emit("postsUpdated");
 
   res.status(201).json({
    message: "Post saved successfully"
@@ -228,8 +212,6 @@ app.delete("/posts/:id", async (req, res) => {
 
   await Post.findByIdAndDelete(req.params.id);
 
-  io.emit("postsUpdated");
-
   res.json({
    message: "Post deleted"
   });
@@ -250,6 +232,6 @@ app.delete("/posts/:id", async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 
-server.listen(PORT, () => {
- console.log("Echozone server running on port " + PORT + " with WebSockets");
+app.listen(PORT, () => {
+ console.log("Echozone server running on port " + PORT);
 });
