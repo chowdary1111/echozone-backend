@@ -56,7 +56,7 @@ async function createPost() {
 
       if (response.ok) {
         textInput.value = "";
-        // Wait for WebSocket "postsUpdated" to trigger reload
+        loadPosts(); // Guaranteed UI reload
       } else {
         const data = await response.json();
         if (data.error) {
@@ -94,7 +94,8 @@ async function createPost() {
       (error) => {
         console.log("Geolocation error:", error);
         sendPost();
-      }
+      },
+      { timeout: 5000 } // DO NOT HANG INFINITELY IF GPS IS WEAK
     );
   } else {
     sendPost();
@@ -106,7 +107,12 @@ async function createPost() {
    LOAD POSTS FROM SERVER
 ========================= */
 
+let isLoadingFeed = false;
+
 async function loadPosts() {
+  if (isLoadingFeed) return;
+  isLoadingFeed = true;
+
   try {
     let fetchUrl = "/posts";
 
@@ -189,6 +195,8 @@ async function loadPosts() {
 
     console.log("Error loading posts:", error);
 
+  } finally {
+    isLoadingFeed = false;
   }
 
 }
@@ -318,7 +326,8 @@ async function deletePost(id) {
     await fetch("/posts/" + id, {
       method: "DELETE"
     });
-    // Wait for WebSocket "postsUpdated" to trigger reload
+    
+    loadPosts(); // Guaranteed UI reload
 
   } catch (error) {
 
