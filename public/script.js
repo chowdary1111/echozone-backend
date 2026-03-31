@@ -15,6 +15,23 @@ if ("Notification" in window) {
 let knownEmergencies = new Set();
 
 /* =========================
+   BACKGROUND GPS TRACKING
+========================= */
+
+let currentLat = null;
+let currentLng = null;
+if ("geolocation" in navigator) {
+  navigator.geolocation.watchPosition(
+    (position) => {
+      currentLat = position.coords.latitude;
+      currentLng = position.coords.longitude;
+    },
+    (err) => console.log("Background GPS error:", err.message),
+    { enableHighAccuracy: true, maximumAge: 10000 }
+  );
+}
+
+/* =========================
    OPEN APP
 ========================= */
 
@@ -71,36 +88,24 @@ async function createPost() {
     }
   };
 
-  if ("geolocation" in navigator) {
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const lat = position.coords.latitude;
-        const lon = position.coords.longitude;
-        postData.lat = lat;
-        postData.lng = lon;
-        try {
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
-          const data = await res.json();
-          if (data && data.address) {
-            postData.location = data.address.city || data.address.town || data.address.village || data.address.county || `${lat.toFixed(2)}, ${lon.toFixed(2)}`;
-          } else {
-            postData.location = `${lat.toFixed(2)}, ${lon.toFixed(2)}`;
-          }
-        } catch (e) {
-          postData.location = `${lat.toFixed(2)}, ${lon.toFixed(2)}`;
-        }
-        sendPost();
-      },
-      (error) => {
-        console.log("Geolocation error:", error);
-        sendPost();
-      },
-      { timeout: 5000 } // DO NOT HANG INFINITELY IF GPS IS WEAK
-    );
+  if (currentLat !== null && currentLng !== null) {
+    postData.lat = currentLat;
+    postData.lng = currentLng;
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${currentLat}&lon=${currentLng}`);
+      const data = await res.json();
+      if (data && data.address) {
+        postData.location = data.address.city || data.address.town || data.address.village || data.address.county || `${currentLat.toFixed(2)}, ${currentLng.toFixed(2)}`;
+      } else {
+        postData.location = `${currentLat.toFixed(2)}, ${currentLng.toFixed(2)}`;
+      }
+    } catch (e) {
+      postData.location = `${currentLat.toFixed(2)}, ${currentLng.toFixed(2)}`;
+    }
+    sendPost();
   } else {
     sendPost();
   }
-
 }
 
 /* =========================
@@ -116,20 +121,9 @@ async function loadPosts() {
   try {
     let fetchUrl = "/posts";
 
-    // Attempt to get user location to sort posts by distance
-    if ("geolocation" in navigator) {
-      try {
-        const position = await new Promise((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: true, timeout: 5000, maximumAge: 30000
-          });
-        });
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
-        fetchUrl = `/posts?lat=${lat}&lng=${lng}`;
-      } catch (e) {
-        console.log("Could not get location for exact normal sorting.");
-      }
+    // Instant check against background GPS variables
+    if (currentLat !== null && currentLng !== null) {
+      fetchUrl = `/posts?lat=${currentLat}&lng=${currentLng}`;
     }
 
     const response = await fetch(fetchUrl);
@@ -207,19 +201,12 @@ async function loadPosts() {
 
 async function loadEmergencyPosts(container) {
 
-  if (!("geolocation" in navigator)) return;
+  // Immediately return if we lack cached GPS coordinates
+  if (currentLat === null || currentLng === null) return;
 
   try {
-    const position = await new Promise((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(resolve, reject, {
-        enableHighAccuracy: true,
-        timeout: 5000,
-        maximumAge: 30000
-      });
-    });
-
-    const lat = position.coords.latitude;
-    const lng = position.coords.longitude;
+    const lat = currentLat;
+    const lng = currentLng;
 
     const response = await fetch(`/posts/nearby?lat=${lat}&lng=${lng}`);
     const emergencyPosts = await response.json();
