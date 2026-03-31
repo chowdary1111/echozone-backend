@@ -155,7 +155,7 @@ app.get("/posts", async (req, res) => {
    }
    return postObj;
   })
-  .filter(post => post.distance <= 5000) // Within 5km (0m to 5000m)
+  .filter(post => post.distance <= 5000 || post.distance === Infinity) // Within 5km (0m to 5000m) OR location unknown
   .sort((a, b) => a.distance - b.distance); // Nearest first
 
   res.json(postsWithDistance);

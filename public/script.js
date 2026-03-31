@@ -56,7 +56,7 @@ async function createPost() {
 
       if (response.ok) {
         textInput.value = "";
-        loadPosts(); // Reload posts
+        // Wait for WebSocket "postsUpdated" to trigger reload
       } else {
         const data = await response.json();
         if (data.error) {
@@ -316,12 +316,9 @@ async function deletePost(id) {
   try {
 
     await fetch("/posts/" + id, {
-
       method: "DELETE"
-
     });
-
-    loadPosts();
+    // Wait for WebSocket "postsUpdated" to trigger reload
 
   } catch (error) {
 
