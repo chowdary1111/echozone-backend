@@ -123,7 +123,9 @@ async function loadPosts() {
 
     // Instant check against background GPS variables
     if (currentLat !== null && currentLng !== null) {
-      fetchUrl = `/posts?lat=${currentLat}&lng=${currentLng}`;
+      fetchUrl = `/posts?lat=${currentLat}&lng=${currentLng}&user=${userId}`;
+    } else {
+      fetchUrl = `/posts?user=${userId}`;
     }
 
     const response = await fetch(fetchUrl);
@@ -136,6 +138,8 @@ async function loadPosts() {
     await loadEmergencyPosts(postsContainer);
 
     posts.forEach(post => {
+      // BUG FIX: Never show private messages in the public local feed!
+      if (post.isPrivate === true) return;
 
       let locationDisplay = post.location && post.location !== "Nearby" ? post.location : "Nearby";
       if (post.distance !== undefined && post.distance !== null) {
@@ -368,3 +372,310 @@ function startDeleteTimer(id, startMs, cooldown) {
   }, 1000);
 }
 
+
+/* =========================
+   AI EMOTION & MATCHING LOGIC
+========================= */
+
+let currentMatchId = null;
+let currentEmotion = null;
+
+const motivationalQuotes = [
+  "You're braver than you believe, stronger than you seem, and smarter than you think. - A.A. Milne",
+  "It does not matter how slowly you go as long as you do not stop. - Confucius",
+  "Hardships often prepare ordinary people for an extraordinary destiny. - C.S. Lewis",
+  "Believe you can and you're halfway there. - Theodore Roosevelt",
+  "The only way to do great work is to love what you do. - Steve Jobs",
+  "You are enough just as you are. - Meghan Markle",
+  "Keep your face always toward the sunshine—and shadows will fall behind you. - Walt Whitman",
+];
+
+function openEmotionMode() {
+  document.getElementById("emotionModal").style.display = "block";
+  document.getElementById("emotionInitial").style.display = "block";
+  document.getElementById("emotionCritical").style.display = "none";
+  document.getElementById("emotionMatch").style.display = "none";
+  document.getElementById("emotionSearching").style.display = "none";
+  currentMatchId = null;
+}
+
+function closeEmotionMode() {
+  document.getElementById("emotionModal").style.display = "none";
+  currentMatchId = null;
+}
+
+async function startAnalysis() {
+  const msg = document.getElementById("emotionMsg").value.trim();
+  if (!msg) return alert("Please share how you feel first!");
+
+  document.getElementById("emotionInitial").style.display = "none";
+  document.getElementById("emotionSearching").style.display = "block";
+
+  try {
+    const res = await fetch("/api/emotion/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, message: msg })
+    });
+    const data = await res.json();
+
+    document.getElementById("emotionSearching").style.display = "none";
+
+    if (data.emotion === "critical") {
+      showCriticalSupport();
+    } else if (data.matchUserId) {
+      currentMatchId = data.matchUserId;
+      currentEmotion = data.emotion;
+      showChatRoom(data.matchUserId, data.emotion);
+    } else {
+      alert(`AI detected you feel ${data.emotion}, but no match found yet. We'll keep searching!`);
+      closeEmotionMode();
+    }
+  } catch (err) {
+    console.error("Analysis failed:", err);
+    alert("AI Analysis failed. Please try again.");
+    document.getElementById("emotionInitial").style.display = "block";
+  }
+}
+
+function showCriticalSupport() {
+  document.getElementById("emotionCritical").style.display = "block";
+  const quote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
+  document.getElementById("quoteDisplay").innerText = `"${quote}"`;
+}
+
+function showChatRoom(matchId, emotion) {
+  document.getElementById("emotionMatch").style.display = "block";
+  document.getElementById("matchSub").innerText = `You've been matched with ${matchId} because you both feel ${emotion}.`;
+  updateChatBox();
+}
+
+async function sendChatMessage() {
+  const input = document.getElementById("chatInput");
+  const text = input.value.trim();
+  if (!text || !currentMatchId) return;
+
+  try {
+    const response = await fetch("/posts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text: text,
+        user: userId,
+        recipient: currentMatchId,
+        isPrivate: true,
+        type: "normal"
+      })
+    });
+
+    if (response.ok) {
+      input.value = "";
+      updateChatBox();
+    }
+  } catch (err) {
+    console.error("Chat send failed:", err);
+  }
+}
+
+async function updateChatBox() {
+  if (!currentMatchId || document.getElementById("emotionMatch").style.display === "none") return;
+
+  try {
+    const res = await fetch(`/posts?user=${userId}`);
+    const posts = await res.json();
+    
+    // Filter private messages between me and my match
+    const myChat = posts.filter(p => 
+      p.isPrivate === true && 
+      ((p.user === userId && p.recipient === currentMatchId) || 
+       (p.user === currentMatchId && p.recipient === userId))
+    );
+
+    const chatBox = document.getElementById("chatBox");
+    chatBox.innerHTML = "";
+
+    myChat.reverse().forEach(msg => {
+      const msgDiv = document.createElement("div");
+      const isMe = msg.user === userId;
+      
+      msgDiv.style.alignSelf = isMe ? "flex-end" : "flex-start";
+      msgDiv.style.background = isMe ? "#38bdf8" : "rgba(255,255,255,0.1)";
+      msgDiv.style.color = isMe ? "black" : "white";
+      msgDiv.style.padding = "10px 15px";
+      msgDiv.style.borderRadius = "15px";
+      msgDiv.style.maxWidth = "80%";
+      msgDiv.style.fontSize = "14px";
+      
+      msgDiv.innerText = msg.text;
+      chatBox.appendChild(msgDiv);
+    });
+
+    chatBox.scrollTop = chatBox.scrollHeight;
+  } catch (err) {
+    console.error("Chat update failed:", err);
+  }
+}
+
+// Add chat update to the global poll
+setInterval(() => {
+  if (currentMatchId) updateChatBox();
+}, 5000);
+
+
+/* =========================
+   UI TOGGLES
+========================= */
+
+function toggleTools() {
+  const dropdown = document.getElementById("toolsDropdown");
+  dropdown.style.display = dropdown.style.display === "none" ? "block" : "none";
+}
+
+function toggleChatbot() {
+  const modal = document.getElementById("chatbotModal");
+  modal.style.display = modal.style.display === "none" ? "flex" : "none";
+}
+
+// Close tools if clicking outside
+window.addEventListener("click", (e) => {
+  if (!e.target.closest("#toolsMenu")) {
+    document.getElementById("toolsDropdown").style.display = "none";
+  }
+});
+
+
+/* =========================
+   AI CHATBOT LOGIC
+======================== */
+
+async function sendChatbotMessage() {
+  const input = document.getElementById("chatbotInput");
+  const msg = input.value.trim();
+  if (!msg) return;
+
+  const msgContainer = document.getElementById("chatbotMessages");
+  
+  // User message
+  const userDiv = document.createElement("div");
+  userDiv.className = "chat-msg-user";
+  userDiv.innerText = msg;
+  msgContainer.appendChild(userDiv);
+  
+  input.value = "";
+  msgContainer.scrollTop = msgContainer.scrollHeight;
+
+  // Bot thinking...
+  const botDiv = document.createElement("div");
+  botDiv.className = "chat-msg-bot";
+  botDiv.innerText = "...";
+  msgContainer.appendChild(botDiv);
+
+  try {
+    // GPS Check: Ensure location is available before searching - with FORCE DETECT
+    if ((msg.toLowerCase().includes("hospital") || msg.toLowerCase().includes("police")) && (!currentLat || !currentLng)) {
+      botDiv.innerHTML = "<div>Locating you... Please wait just a second. 📍</div>";
+      
+      // Force an immediate high-accuracy position check
+      await new Promise((resolve) => {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            currentLat = pos.coords.latitude;
+            currentLng = pos.coords.longitude;
+            resolve();
+          },
+          (err) => {
+            console.log("Force location failed:", err.message);
+            resolve();
+          },
+          { timeout: 5000, enableHighAccuracy: true }
+        );
+      });
+
+      if (!currentLat || !currentLng) {
+        botDiv.innerHTML = "<div>I'm still having trouble finding your location. Please check your GPS settings so I can find local results for you! 📍</div>";
+        return;
+      }
+    }
+
+    const res = await fetch("/api/chatbot", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: msg,
+        user: userId, // Ensure auto-post uses correct user ID
+        lat: currentLat,
+        lng: currentLng
+      })
+    });
+    const data = await res.json();
+
+    botDiv.innerHTML = `<div>${data.message || "I'm sorry, I couldn't process that."}</div>`;
+
+    if (data.autoPosted) {
+      // Refresh feed since bot automatically posted for us!
+      setTimeout(loadPosts, 1000);
+    }
+
+    if (data.locations && data.locations.length > 0) {
+      data.locations.forEach(loc => {
+        const locCard = document.createElement("div");
+        locCard.className = "loc-card";
+        
+        let directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${loc.lat},${loc.lng}`;
+        if (currentLat && currentLng) {
+          directionsUrl += `&origin=${currentLat},${currentLng}`;
+        }
+
+        locCard.innerHTML = `
+          <b>${loc.name}</b>
+          <span style="font-size:12px; opacity:0.8;">📍 ${loc.address}</span>
+          <button onclick="window.open('${directionsUrl}', '_blank')">🚀 Get Directions</button>
+        `;
+        botDiv.appendChild(locCard);
+      });
+    }
+
+  } catch (err) {
+    botDiv.innerText = "Error connecting to AI. Please try again.";
+  }
+  
+  msgContainer.scrollTop = msgContainer.scrollHeight;
+}
+
+async function postFromChatbot(text) {
+  if (!userId) {
+    alert("User ID missing. Try refreshing the page.");
+    return;
+  }
+
+  // Ensure we have some location info
+  const postData = {
+    text: text,
+    location: currentLat ? "Nearby" : "Unknown",
+    type: "normal",
+    user: userId,
+    lat: currentLat,
+    lng: currentLng
+  };
+
+  try {
+    const response = await fetch("/posts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(postData)
+    });
+
+    const result = await response.json();
+
+    if (response.ok) {
+      alert("Post shared to Echozone! 🚀");
+      loadPosts(); 
+      toggleChatbot(); // Close chat
+    } else {
+      alert("Search Bot Error: " + (result.error || "Server rejected the post."));
+    }
+  } catch (err) {
+    console.error("Post Chatbot Error:", err);
+    alert("Post system is currently busy. Please try again in a moment.");
+  }
+}

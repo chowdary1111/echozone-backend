@@ -95,6 +95,7 @@
          background-size: 300%;
 
          -webkit-background-clip: text;
+         background-clip: text;
          -webkit-text-fill-color: transparent;
 
          animation: titleFlow 6s linear infinite;
@@ -181,6 +182,7 @@
          background-size: 300%;
 
          -webkit-background-clip: text;
+         background-clip: text;
          -webkit-text-fill-color: transparent;
 
          animation:
@@ -474,7 +476,15 @@
 
    <div id="appPage" style="display:none;">
 
-      <h1>Echozone</h1>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+         <h1>Echozone</h1>
+         <div id="toolsMenu" style="position:relative;">
+            <button onclick="toggleTools()" class="pulse-gold">🛠️ Tools</button>
+            <div id="toolsDropdown" style="display:none; position:absolute; right:0; top:45px; background:#1e293b; border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:10px; min-width:180px; z-index:1000; box-shadow:0 10px 25px rgba(0,0,0,0.5);">
+               <button onclick="openEmotionMode()" style="width:100%; text-align:left; background:transparent; font-size:13px; border-radius:8px; border:none; color:white; cursor:pointer; padding:10px;">✨ Emotion Matching</button>
+            </div>
+         </div>
+      </div>
 
       <div class="moving-tagline">
          <span>
@@ -498,6 +508,52 @@
 
    </div>
 
+   <!-- =========================
+     AI EMOTION MODAL
+========================= -->
+   <div id="emotionModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); z-index:1000000; overflow-y:auto; padding:20px;">
+      <div style="max-width:500px; margin:50px auto; background:#1e293b; padding:30px; border-radius:24px; border:1px solid rgba(255,255,255,0.1); position:relative;">
+         <button onclick="closeEmotionMode()" style="position:absolute; right:20px; top:20px; background:transparent; color:white; border:none; font-size:24px; cursor:pointer;">&times;</button>
+         
+         <div id="emotionInitial">
+            <h2 style="font-family:'Orbitron'; margin-bottom:10px; color:#38bdf8;">AI Connection</h2>
+            <p style="opacity:0.8; margin-bottom:20px;">How are you feeling today? Our AI will find someone to talk to.</p>
+            <textarea id="emotionMsg" placeholder="Share your thoughts... (e.g. I had a great day! or I am feeling stressed)" style="height:100px; margin-bottom:15px;"></textarea>
+            <button onclick="startAnalysis()" id="analyzeBtn" style="width:100%; background:linear-gradient(90deg, #38bdf8, #818cf8); color:white;">Analyze & Match</button>
+         </div>
+
+         <div id="emotionCritical" style="display:none; text-align:center;">
+            <h2 style="color:#ef4444; font-family:'Orbitron';">You are not alone.</h2>
+            <div id="quoteDisplay" style="margin:25px 0; font-style:italic; font-size:18px; line-height:1.6; color:#f8fafc;"></div>
+            <p style="font-size:14px; opacity:0.7;">Remember, there are people who care about you. Please reach out to a professional if you need immediate help.</p>
+            <button onclick="openemergency()" style="margin-top:20px; background:#ef4444; color:white;">🚨 Get Emergency Help</button>
+         </div>
+
+         <div id="emotionMatch" style="display:none;">
+            <h2 id="matchTitle" style="color:#10b981; font-family:'Orbitron';">It's a Match!</h2>
+            <p id="matchSub" style="font-size:14px; opacity:0.8; margin-bottom:15px;"></p>
+            <div id="chatBox" style="height:300px; background:rgba(0,0,0,0.3); border-radius:12px; padding:15px; overflow-y:auto; margin-bottom:15px; display:flex; flex-direction:column; gap:10px;">
+               <!-- Messages will appear here -->
+            </div>
+            <div style="display:flex; gap:10px;">
+               <input type="text" id="chatInput" placeholder="Type a message..." style="flex:1; padding:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; color:white;">
+               <button onclick="sendChatMessage()" style="background:#10b981; color:white; padding:10px 20px;">Send</button>
+            </div>
+         </div>
+
+         <div id="emotionSearching" style="display:none; text-align:center;">
+            <div class="loader-ai" style="width:50px; height:50px; border:3px solid rgba(56,189,248,0.2); border-top-color:#38bdf8; border-radius:50%; animation:spin 1s linear infinite; margin:30px auto;"></div>
+            <h2>Finding a match...</h2>
+            <p style="opacity:0.7;">The AI is searching for someone based on your emotional state.</p>
+         </div>
+      </div>
+   </div>
+
+   <style>
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .loader-ai { display: inline-block; }
+   </style>
+
    <!-- LOAD SCRIPT -->
    <script src="./script.js"></script>
 
@@ -505,53 +561,157 @@
 
    <!-- 🚨 EMERGENCY FLOAT BUTTON -->
    <button onclick="openemergency()" id="emergencyBtn">
-
       🚨 EMERGENCY
-
    </button>
+
+   <!-- 🤖 AI CHATBOT FLOAT BUTTON -->
+   <button onclick="toggleChatbot()" id="chatbotBtn">
+      🤖 AI
+   </button>
+
+   <!-- 🤖 AI CHATBOT MODAL -->
+   <div id="chatbotModal" style="display:none; position:fixed; bottom:90px; right:25px; width:350px; height:500px; background:#1e293b; border:1px solid rgba(255,255,255,0.1); border-radius:20px; z-index:999999; box-shadow:0 15px 35px rgba(0,0,0,0.6); display:flex; flex-direction:column; overflow:hidden; border: 1px solid rgba(56, 189, 248, 0.3);">
+      <div id="chatbotHeader" style="background:#1e293b; padding:15px; border-bottom:1px solid rgba(255,255,255,0.1); display:flex; justify-content:space-between; align-items:center;">
+         <span style="font-weight:bold;">🤖 EchoBot (AI Assistant)</span>
+         <button onclick="toggleChatbot()" style="background:transparent; border:none; color:#94a3b8; cursor:pointer;">✕</button>
+      </div>
+      <div style="padding:10px; font-size:11px; color:#94a3b8; background:rgba(0,0,0,0.2); border-bottom:1px solid rgba(255,255,255,0.05);">
+         Find: 🏥 Hospitals, 👮 Police, ⛽ Fuel, ☕ Cafes, or share any thought to post to Echozone!
+      </div>
+      <div id="chatbotMessages" style="height:320px; overflow-y:auto; padding:15px; display:flex; flex-direction:column; gap:10px;">
+         <!-- Messages will appear here -->
+         <div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:10px; font-size:13px;">
+            Hello! I'm EchoBot. How can I help you today?
+            <br><br>
+            Try searching: <i>"hospotal nearby"</i>, <i>"find petrol bunk"</i>, or just tell me a thought to share it with the community!
+         </div>
+      </div>
+      <div id="chatbotInputArea" style="padding:15px; border-top:1px solid rgba(255,255,255,0.1); display:flex; gap:10px;">
+         <input type="text" id="chatbotInput" placeholder="Find hospitals, cafes, or share a thought..." style="flex:1; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); color:white; padding:10px; border-radius:8px;">
+         <button onclick="sendChatbotMessage()" style="background:#38bdf8; color:black; border:none; padding:10px 15px; border-radius:8px; font-weight:bold; cursor:pointer;">Send</button>
+      </div>
+   </div>
 
    <style>
       #emergencyBtn {
-
          position: fixed;
          bottom: 25px;
          right: 25px;
-
          background: red;
          color: white;
-
          padding: 14px 22px;
-
          border: none;
          border-radius: 50px;
-
          font-weight: bold;
          cursor: pointer;
-
          box-shadow: 0 0 20px red;
-
          z-index: 999999;
-
          animation: pulseEmergency 1.2s infinite;
-
       }
 
-      /* Glow Pulse */
+      #chatbotBtn {
+         position: fixed;
+         bottom: 25px;
+         right: 210px; /* Moved further left to avoid overlap */
+         background: linear-gradient(135deg, #38bdf8, #818cf8);
+         color: white;
+         padding: 12px 20px;
+         border: none;
+         border-radius: 50px;
+         font-weight: bold;
+         font-size: 14px;
+         cursor: pointer;
+         box-shadow: 0 4px 15px rgba(56, 189, 248, 0.4);
+         z-index: 999999;
+         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      #chatbotBtn:hover {
+         transform: translateY(-5px);
+         box-shadow: 0 0 25px rgba(56, 189, 248, 0.8);
+      }
 
       @keyframes pulseEmergency {
+         0% { box-shadow: 0 0 10px red; }
+         50% { box-shadow: 0 0 30px red; }
+         100% { box-shadow: 0 0 10px red; }
+      }
 
+      .chat-msg-user {
+         background: #38bdf8;
+         color: black;
+         padding: 10px 15px;
+         border-radius: 15px;
+         align-self: flex-end;
+         border-bottom-right-radius: 2px;
+         max-width: 80%;
+      }
+
+      .chat-msg-bot {
+         background: rgba(255,255,255,0.05);
+         color: white;
+         padding: 10px 15px;
+         border-radius: 15px;
+         align-self: flex-start;
+         border-bottom-left-radius: 2px;
+         max-width: 80%;
+         border: 1px solid rgba(255,255,255,0.1);
+      }
+
+      .loc-card {
+         background: rgba(255,255,255,0.05);
+         border: 1px solid rgba(56, 189, 248, 0.3);
+         border-radius: 10px;
+         padding: 10px;
+         margin-top: 5px;
+         display: flex;
+         flex-direction: column;
+         gap: 5px;
+      }
+
+      .loc-card b { color: #38bdf8; }
+      .loc-card button {
+         background: #38bdf8;
+         color: black;
+         font-size: 11px;
+         padding: 5px 10px;
+         border-radius: 5px;
+         width: fit-content;
+      }
+
+      /* Gold Pulse Theme */
+      .pulse-gold {
+         background: rgba(0,0,0,0.5);
+         color: #ffd700;
+         border: 2px solid #ffd700;
+         border-radius: 10px;
+         padding: 8px 15px;
+         font-size: 14px;
+         font-weight: bold;
+         cursor: pointer;
+         animation: pulseGold 2s infinite;
+         box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+         transition: 0.3s;
+      }
+
+      .pulse-gold:hover {
+         background: rgba(255, 215, 0, 0.1);
+         box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+      }
+
+      @keyframes pulseGold {
          0% {
-            box-shadow: 0 0 10px red;
+            box-shadow: 0 0 5px rgba(255, 215, 0, 0.4);
+            border-color: #ffd700;
          }
-
          50% {
-            box-shadow: 0 0 30px red;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
+            border-color: #ffb700;
          }
-
          100% {
-            box-shadow: 0 0 10px red;
+            box-shadow: 0 0 5px rgba(255, 215, 0, 0.4);
+            border-color: #ffd700;
          }
-
       }
    </style>
 </body>

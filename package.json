@@ -4,17 +4,23 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev:local": "node server.js",
+    "tunnel": "lt --port 3000"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "bad-words": "^3.0.4",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "mongoose": "^9.2.4"
+  },
+  "devDependencies": {
+    "localtunnel": "^2.0.2"
   }
 }

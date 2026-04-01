@@ -3,6 +3,9 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+const getLocalIP = require("./get-ip.cjs");
+const chatbotService = require("./features/chatbot.service");
 
 const Post = require("./models/Post");
 
@@ -15,6 +18,10 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 app.use(express.static("public"));
+
+/* -------- EMOTION FEATURE -------- */
+const emotionRoutes = require('./features/emotion/emotion.routes');
+app.use('/api/emotion', emotionRoutes);
 
 /* -------- MONGODB CONNECTION -------- */
 
@@ -85,6 +92,8 @@ app.post("/posts", async (req, res) => {
    location: req.body.location,
    type: req.body.type || "normal",
    user: req.body.user,
+   recipient: req.body.recipient, // FIX: Inclusion of recipient field for privacy
+   isPrivate: req.body.isPrivate || false, // FIX: Inclusion of isPrivate flag for privacy
    lat: req.body.lat,
    lng: req.body.lng
   });
@@ -115,18 +124,29 @@ app.get("/posts", async (req, res) => {
 
   const userLat = parseFloat(req.query.lat);
   const userLng = parseFloat(req.query.lng);
+  const requesterId = req.query.user; // Get the ID of the user requesting the feed
+
+  // Query filter logic for privacy
+  const queryFilter = {
+    type: { $ne: "emergency" },
+    $or: [
+      { isPrivate: { $ne: true } }, // Show public posts
+      { user: requesterId },         // Show private posts I sent
+      { recipient: requesterId }     // Show private posts sent to me
+    ]
+  };
 
   // If no coords provided, fallback to default latest sorting (e.g. for initial load without location)
   if (isNaN(userLat) || isNaN(userLng)) {
    const posts = await Post
-    .find({ type: { $ne: "emergency" } })
+    .find(queryFilter)
     .sort({ createdAt: -1 });
    
    return res.json(posts);
   }
 
   const posts = await Post
-   .find({ type: { $ne: "emergency" } })
+   .find(queryFilter)
    .sort({ createdAt: -1 });
 
   // Map and calculate distance
@@ -207,31 +227,85 @@ app.get("/posts/nearby", async (req, res) => {
 /* -------- DELETE POST -------- */
 
 app.delete("/posts/:id", async (req, res) => {
-
  try {
-
   await Post.findByIdAndDelete(req.params.id);
-
-  res.json({
-   message: "Post deleted"
-  });
-
+  res.json({ message: "Post deleted" });
  } catch (err) {
-
   console.log(err);
-
-  res.status(500).json({
-   error: "Delete failed"
-  });
-
+  res.status(500).json({ error: "Delete failed" });
  }
-
 });
 
-/* -------- SERVER START -------- */
+/* -------- AI EMERGENCY CHATBOT -------- */
+
+app.post("/api/chatbot", async (req, res) => {
+ try {
+  const { message, lat, lng } = req.body;
+  if (!message) return res.status(400).json({ error: "Message required" });
+
+  // Use the service to identify intent (has built-in keyword fallback)
+  const intentResult = await chatbotService.identifyIntent(message);
+  
+  const locationIntents = ["police", "hospital", "cafe", "restaurant", "fuel", "pharmacy"];
+  
+  if (locationIntents.includes(intentResult.intent)) {
+   const locations = await chatbotService.findNearby(lat, lng, intentResult.intent);
+   return res.json({
+    intent: intentResult.intent,
+    message: `I've found ${locations.length} nearby ${intentResult.intent} locations for you.`,
+    locations: locations
+   });
+  }
+
+  // Default response (Chatting) - NOW AUTO-POSTS TO FEED
+  try {
+   const apiKey = process.env.GEMINI_API_KEY;
+
+   // Auto-publish non-location thoughts to Echozone Feed
+   const autoPost = new Post({
+    text: message,
+    user: req.body.user || "Anonymous",
+    lat: lat,
+    lng: lng,
+    location: "Shared via AI",
+    type: "normal"
+   });
+   await autoPost.save();
+
+   if (!apiKey) throw new Error("Missing API Key");
+
+   const genAI = new GoogleGenerativeAI(apiKey);
+   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+   const result = await model.generateContent(`You are an emergency AI assistant named EchoBot. The user just shared this thought to the community feed: "${message}". Give a very brief, supportive 1-sentence response acknowledging their share.`);
+   
+   return res.json({
+    intent: "other",
+    message: result.response.text(),
+    locations: [],
+    autoPosted: true
+   });
+  } catch (aiErr) {
+   // Fallback if AI fails, but post is already saved!
+   return res.json({
+    intent: "other",
+    message: "I've shared your thought to the Echozone feed! 🚀 Keep being awesome.",
+    locations: [],
+    autoPosted: true
+   });
+  }
+
+ } catch (err) {
+  console.error("Critical Chatbot Error:", err);
+  res.status(500).json({ error: "Assistant is currently resting. Please try again soon." });
+ }
+});
 
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
- console.log("Echozone server running on port " + PORT);
+app.listen(PORT, "0.0.0.0", () => {
+ const localIP = getLocalIP();
+ console.log(`🚀 Echozone server running on:`);
+ console.log(`   - Local:            http://localhost:${PORT}`);
+ console.log(`   - Network (Wi-Fi):  http://${localIP}:${PORT}`);
+ console.log(`\nTo test on other devices, make sure they are on the same Wi-Fi!`);
 });
