@@ -478,10 +478,16 @@
 
       <div style="display:flex; justify-content:space-between; align-items:center;">
          <h1>Echozone</h1>
-         <div id="toolsMenu" style="position:relative;">
-            <button onclick="toggleTools()" class="pulse-gold">🛠️ Tools</button>
-            <div id="toolsDropdown" style="display:none; position:absolute; right:0; top:45px; background:#1e293b; border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:10px; min-width:180px; z-index:1000; box-shadow:0 10px 25px rgba(0,0,0,0.5);">
-               <button onclick="openEmotionMode()" style="width:100%; text-align:left; background:transparent; font-size:13px; border-radius:8px; border:none; color:white; cursor:pointer; padding:10px;">✨ Emotion Matching</button>
+         <div style="display:flex; gap:10px; align-items:center;">
+            <div id="feedRangeToggle" style="display:flex; background:rgba(255,255,255,0.05); padding:4px; border-radius:12px; border:1px solid rgba(255,255,255,0.1);">
+               <button id="rangeLocal" onclick="setRange('local')" style="padding:6px 12px; font-size:12px; border-radius:8px; background:#ffd700; color:black; border:none; cursor:pointer;">Nearby</button>
+               <button id="rangeGlobal" onclick="setRange('global')" style="padding:6px 12px; font-size:12px; border-radius:8px; background:transparent; color:white; border:none; cursor:pointer;">Global</button>
+            </div>
+            <div id="toolsMenu" style="position:relative;">
+               <button onclick="toggleTools()" class="pulse-gold">🛠️ Tools</button>
+               <div id="toolsDropdown" style="display:none; position:absolute; right:0; top:45px; background:#1e293b; border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:10px; min-width:180px; z-index:1000; box-shadow:0 10px 25px rgba(0,0,0,0.5);">
+                  <button onclick="openEmotionMode()" style="width:100%; text-align:left; background:transparent; font-size:13px; border-radius:8px; border:none; color:white; cursor:pointer; padding:10px;">✨ Emotion Matching</button>
+               </div>
             </div>
          </div>
       </div>

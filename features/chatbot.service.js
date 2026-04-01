@@ -1,4 +1,4 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const aiService = require("./ai.service");
 
 /**
  * Identify intent from user message
@@ -20,10 +20,6 @@ async function identifyIntent(message) {
     }
 
     try {
-        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-        // Use gemini-1.5-flash for speed/emergency context
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-        
         const prompt = `
         Analyze this user message in an emergency/community safety app. 
         Identify if they are searching for: "police", "hospital", "cafe", "restaurant", "fuel" (petrol bunk), or "pharmacy".
@@ -41,7 +37,7 @@ async function identifyIntent(message) {
         }
         `;
 
-        const result = await model.generateContent(prompt);
+        const result = await aiService.safeGenerateContent(prompt);
         let resultText = result.response.text();
         // Clean text to handle extra markdown if Gemini adds it
         resultText = resultText.replace(/```json/g, "").replace(/```/g, "").trim();
@@ -50,10 +46,10 @@ async function identifyIntent(message) {
             return JSON.parse(jsonMatch[0]);
         }
     } catch (e) {
-        // Silenced for a cleaner developer experience
+        console.error("Chatbot AI Error:", e.message);
     }
     
-    return { intent, reason: "Keyword fallback (API error or timeout)" };
+    return { intent, reason: "Keyword fallback (API error or fallback used)" };
 }
 
 /**

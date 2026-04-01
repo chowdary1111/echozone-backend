@@ -32,9 +32,7 @@ function detectEmotionKeywords(text) {
   return emotions.NEUTRAL;
 }
 
-// Initialize Gemini
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+const aiService = require("../ai.service");
 
 /**
  * Detects the emotion from a given text message using AI (Gemini).
@@ -45,12 +43,7 @@ const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 async function detectEmotion(text) {
   if (!text || typeof text !== 'string') return emotions.NEUTRAL;
 
-  // If no API key is provided, use fallback immediately
-  if (!process.env.GEMINI_API_KEY) {
-    console.warn("GEMINI_API_KEY missing, using keyword fallback.");
-    return detectEmotionKeywords(text);
-  }
-
+  // Use the safe generation service (handles 404 fallbacks internally)
   try {
     const prompt = `Analyze the following user message and classify the user's emotional condition into exactly one of these categories: happy, sad, angry, stress, neutral, or critical.
     
@@ -66,21 +59,24 @@ Message: "${text}"
 
 Respond with ONLY a JSON object like this: {"emotion": "category_name"}`;
 
-    const result = await model.generateContent(prompt);
+    const result = await aiService.safeGenerateContent(prompt);
     const responseText = result.response.text();
     
     // Parse the JSON response
     try {
-      const cleanedResponse = responseText.replace(/```json|```/g, "").trim();
-      const parsed = JSON.parse(cleanedResponse);
-      const detected = (parsed.emotion || emotions.NEUTRAL).toLowerCase();
-      
-      // Validate that the AI returned a valid emotion
-      if (Object.values(emotions).includes(detected)) {
-        return detected;
+      // Use regex to find the first JSON object in the response
+      const jsonMatch = responseText.match(/\{[\s\S]*?\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        const detected = (parsed.emotion || emotions.NEUTRAL).toString().toLowerCase();
+        
+        // Validate that the AI returned a valid emotion
+        if (Object.values(emotions).includes(detected)) {
+          return detected;
+        }
       }
     } catch (parseError) {
-      console.error("AI response parsing error:", responseText);
+      console.error("AI response parsing error. Raw response:", responseText);
     }
   } catch (error) {
     console.error("Gemini AI Error:", error.message);

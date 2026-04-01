@@ -13,6 +13,7 @@ if ("Notification" in window) {
   Notification.requestPermission();
 }
 let knownEmergencies = new Set();
+let currentRange = localStorage.getItem("echozone_range") || "local";
 
 /* =========================
    BACKGROUND GPS TRACKING
@@ -41,8 +42,32 @@ function openApp() {
 
   document.getElementById("appPage").style.display = "block";
 
+  updateRangeUI(); // Set correct button colors
   loadPosts(); // Load posts when app opens
 
+}
+
+function setRange(range) {
+  currentRange = range;
+  localStorage.setItem("echozone_range", range);
+  updateRangeUI();
+  loadPosts();
+}
+
+function updateRangeUI() {
+  const localBtn = document.getElementById("rangeLocal");
+  const globalBtn = document.getElementById("rangeGlobal");
+  if (currentRange === "local") {
+    localBtn.style.background = "#ffd700";
+    localBtn.style.color = "black";
+    globalBtn.style.background = "transparent";
+    globalBtn.style.color = "white";
+  } else {
+    globalBtn.style.background = "#ffd700";
+    globalBtn.style.color = "black";
+    localBtn.style.background = "transparent";
+    localBtn.style.color = "white";
+  }
 }
 
 /* =========================
@@ -119,30 +144,29 @@ async function loadPosts() {
   isLoadingFeed = true;
 
   try {
-    let fetchUrl = "/posts";
+    let fetchUrl = `/posts?range=${currentRange}&user=${userId}`;
 
-    // Instant check against background GPS variables
-    if (currentLat !== null && currentLng !== null) {
-      fetchUrl = `/posts?lat=${currentLat}&lng=${currentLng}&user=${userId}`;
-    } else {
-      fetchUrl = `/posts?user=${userId}`;
+    // Add coordinates for local range
+    if (currentRange === "local" && currentLat !== null && currentLng !== null) {
+      fetchUrl += `&lat=${currentLat}&lng=${currentLng}`;
     }
 
     const response = await fetch(fetchUrl);
     const posts = await response.json();
 
     const postsContainer = document.getElementById("posts");
-    postsContainer.innerHTML = "";
+    
+    // Create a temporary container to prevent flickering while loading
+    const tempContainer = document.createElement("div");
 
-    // Load emergency posts FIRST so they are ALWAYS anchored at the top!
-    await loadEmergencyPosts(postsContainer);
+    // Load emergency posts FIRST
+    await loadEmergencyPosts(tempContainer);
 
     posts.forEach(post => {
-      // BUG FIX: Never show private messages in the public local feed!
       if (post.isPrivate === true) return;
 
       let locationDisplay = post.location && post.location !== "Nearby" ? post.location : "Nearby";
-      if (post.distance !== undefined && post.distance !== null) {
+      if (post.distance !== undefined && post.distance !== null && post.distance !== Infinity) {
         if (post.distance < 1000) {
           locationDisplay += ` • ${Math.round(post.distance)}m away`;
         } else {
@@ -150,53 +174,32 @@ async function loadPosts() {
         }
       }
 
-      let time =
-        new Date(post.createdAt)
-          .toLocaleTimeString();
-
-      let div =
-        document.createElement("div");
-
+      let time = new Date(post.createdAt).toLocaleTimeString();
+      let div = document.createElement("div");
       div.className = "post";
 
       let deleteBtnHtml = "";
       if (post.user === userId) {
-        deleteBtnHtml = `
-          <button class="delete-btn"
-            onclick="deletePost('${post._id}')">
-            Delete
-          </button>
-        `;
+        deleteBtnHtml = `<button class="delete-btn" onclick="deletePost('${post._id}')">Delete</button>`;
       }
 
       div.innerHTML = `
-
         ${post.text}
-
-        <div class="distance">
-          📍 ${locationDisplay}
-        </div>
-
-        <div class="time">
-          ${time}
-        </div>
-
+        <div class="distance">📍 ${locationDisplay}</div>
+        <div class="time">${time}</div>
         ${deleteBtnHtml}
-
       `;
-
-      postsContainer.appendChild(div);
-
+      tempContainer.appendChild(div);
     });
 
+    // Swap content only after everything is ready
+    postsContainer.innerHTML = tempContainer.innerHTML;
+
   } catch (error) {
-
     console.log("Error loading posts:", error);
-
   } finally {
     isLoadingFeed = false;
   }
-
 }
 
 /* =========================
@@ -428,8 +431,10 @@ async function startAnalysis() {
       currentEmotion = data.emotion;
       showChatRoom(data.matchUserId, data.emotion);
     } else {
-      alert(`AI detected you feel ${data.emotion}, but no match found yet. We'll keep searching!`);
-      closeEmotionMode();
+      // FALLBACK: Match with EchoBot if no human available
+      currentMatchId = "EchoBot";
+      currentEmotion = data.emotion;
+      showChatRoom("EchoBot", data.emotion);
     }
   } catch (err) {
     console.error("Analysis failed:", err);
@@ -446,7 +451,11 @@ function showCriticalSupport() {
 
 function showChatRoom(matchId, emotion) {
   document.getElementById("emotionMatch").style.display = "block";
-  document.getElementById("matchSub").innerText = `You've been matched with ${matchId} because you both feel ${emotion}.`;
+  if (matchId === "EchoBot") {
+    document.getElementById("matchSub").innerText = `AI matching: You're currently talking to EchoBot because no other users are online.`;
+  } else {
+    document.getElementById("matchSub").innerText = `You've been matched with ${matchId} because you both feel ${emotion}.`;
+  }
   updateChatBox();
 }
 
@@ -456,6 +465,42 @@ async function sendChatMessage() {
   if (!text || !currentMatchId) return;
 
   try {
+    if (currentMatchId === "EchoBot") {
+      // Bot response logic
+      const userMsgDiv = document.createElement("div");
+      userMsgDiv.style.alignSelf = "flex-end";
+      userMsgDiv.style.background = "#38bdf8";
+      userMsgDiv.style.color = "black";
+      userMsgDiv.style.padding = "10px 15px";
+      userMsgDiv.style.borderRadius = "15px";
+      userMsgDiv.style.maxWidth = "80%";
+      userMsgDiv.style.fontSize = "14px";
+      userMsgDiv.innerText = text;
+      document.getElementById("chatBox").appendChild(userMsgDiv);
+      
+      input.value = "";
+      
+      const res = await fetch("/api/chatbot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: `I'm feeling ${currentEmotion} and I just said: ${text}`, user: userId })
+      });
+      const data = await res.json();
+      
+      const botMsgDiv = document.createElement("div");
+      botMsgDiv.style.alignSelf = "flex-start";
+      botMsgDiv.style.background = "rgba(255,255,255,0.1)";
+      botMsgDiv.style.color = "white";
+      botMsgDiv.style.padding = "10px 15px";
+      botMsgDiv.style.borderRadius = "15px";
+      botMsgDiv.style.maxWidth = "80%";
+      botMsgDiv.style.fontSize = "14px";
+      botMsgDiv.innerText = data.message;
+      document.getElementById("chatBox").appendChild(botMsgDiv);
+      document.getElementById("chatBox").scrollTop = document.getElementById("chatBox").scrollHeight;
+      return;
+    }
+
     const response = await fetch("/posts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

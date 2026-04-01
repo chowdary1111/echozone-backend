@@ -6,6 +6,7 @@ const mongoose = require("mongoose");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const getLocalIP = require("./get-ip.cjs");
 const chatbotService = require("./features/chatbot.service");
+const aiService = require("./features/ai.service");
 
 const Post = require("./models/Post");
 
@@ -122,6 +123,7 @@ app.get("/posts", async (req, res) => {
 
  try {
 
+  const range = req.query.range || "local";
   const userLat = parseFloat(req.query.lat);
   const userLng = parseFloat(req.query.lng);
   const requesterId = req.query.user; // Get the ID of the user requesting the feed
@@ -136,20 +138,21 @@ app.get("/posts", async (req, res) => {
     ]
   };
 
-  // If no coords provided, fallback to default latest sorting (e.g. for initial load without location)
-  if (isNaN(userLat) || isNaN(userLng)) {
-   const posts = await Post
-    .find(queryFilter)
-    .sort({ createdAt: -1 });
-   
-   return res.json(posts);
-  }
-
   const posts = await Post
    .find(queryFilter)
    .sort({ createdAt: -1 });
 
-  // Map and calculate distance
+  // If range is global, return all posts regardless of distance
+  if (range === "global") {
+    return res.json(posts);
+  }
+
+  // If no coords provided, fallback to default latest sorting (e.g. for initial load without location)
+  if (isNaN(userLat) || isNaN(userLng)) {
+   return res.json(posts);
+  }
+
+  // Local filtering logic: Map and calculate distance
   const postsWithDistance = posts.map(post => {
    const postObj = post.toObject();
    if (postObj.lat && postObj.lng) {
@@ -159,7 +162,7 @@ app.get("/posts", async (req, res) => {
    }
    return postObj;
   })
-  .filter(post => post.distance <= 5000 || post.distance === Infinity) // Within 5km (0m to 5000m) OR location unknown
+  .filter(post => post.distance <= 10000 || post.distance === Infinity) // Within 10km (increased from 5km) OR location unknown
   .sort((a, b) => a.distance - b.distance); // Nearest first
 
   res.json(postsWithDistance);
@@ -272,11 +275,9 @@ app.post("/api/chatbot", async (req, res) => {
    });
    await autoPost.save();
 
-   if (!apiKey) throw new Error("Missing API Key");
+   if (!process.env.GEMINI_API_KEY) throw new Error("Missing API Key");
 
-   const genAI = new GoogleGenerativeAI(apiKey);
-   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-   const result = await model.generateContent(`You are an emergency AI assistant named EchoBot. The user just shared this thought to the community feed: "${message}". Give a very brief, supportive 1-sentence response acknowledging their share.`);
+   const result = await aiService.safeGenerateContent(`You are an emergency AI assistant named EchoBot. The user just shared this thought to the community feed: "${message}". Give a very brief, supportive 1-sentence response acknowledging their share.`);
    
    return res.json({
     intent: "other",
@@ -307,5 +308,14 @@ app.listen(PORT, "0.0.0.0", () => {
  console.log(`🚀 Echozone server running on:`);
  console.log(`   - Local:            http://localhost:${PORT}`);
  console.log(`   - Network (Wi-Fi):  http://${localIP}:${PORT}`);
+
+ // CHECK FOR GEMINI API KEY
+ if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === "") {
+  console.log(`\n⚠️  WARNING: GEMINI_API_KEY is missing!`);
+  console.log(`   Emotional AI and Chatbot will use keyword-based fallbacks.`);
+  console.log(`   To fix this, add GEMINI_API_KEY to your .env or Render Environment Variables.`);
+ } else {
+  console.log(`\n✅ GEMINI_API_KEY detected. AI features enabled.`);
+ }
  console.log(`\nTo test on other devices, make sure they are on the same Wi-Fi!`);
 });
