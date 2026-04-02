@@ -37,12 +37,21 @@ app.use('/api/emotion', emotionRoutes);
 
 /* -------- MONGODB CONNECTION -------- */
 
+const mongoUri = process.env.MONGO_URI;
+
+if (!mongoUri) {
+  console.error("❌ CRITICAL ERROR: MONGO_URI is missing from environment variables!");
+} else if (mongoUri.includes("localhost") || mongoUri.includes("127.0.0.1")) {
+  console.error("❌ CRITICAL ERROR: MONGO_URI points to localhost. Render cannot connect to a local database. Please use a MongoDB Atlas URI.");
+}
+
 const mongooseOptions = {
   serverSelectionTimeoutMS: 5000, // Fail early if database is unreachable
   socketTimeoutMS: 45000,         // Close sockets after 45 seconds of inactivity
+  family: 4                       // Force IPv4 - Fixes Mongoose DNS connection timeouts on Render
 };
 
-mongoose.connect(process.env.MONGO_URI, mongooseOptions)
+mongoose.connect(mongoUri, mongooseOptions)
 .then(() => console.log("✅ MongoDB Connected Successfully"))
 .catch(err => {
   console.error("❌ MongoDB Connection Fatal Error!");
