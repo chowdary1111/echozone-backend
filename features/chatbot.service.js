@@ -29,21 +29,14 @@ async function identifyIntent(message) {
         2. If the user is searching for a location, provide the corrected category as the intent.
         
         Message: "${message}"
-        
-        Respond in STRICT JSON format:
-        {
-            "intent": "police" | "hospital" | "cafe" | "restaurant" | "fuel" | "pharmacy" | "other",
-            "reason": "short explanation"
-        }
         `;
 
-        const result = await aiService.safeGenerateContent(prompt);
-        let resultText = result.response.text();
-        // Clean text to handle extra markdown if Gemini adds it
-        resultText = resultText.replace(/```json/g, "").replace(/```/g, "").trim();
-        const jsonMatch = resultText.match(/\{.*\}/s);
-        if (jsonMatch) {
-            return JSON.parse(jsonMatch[0]);
+        const result = await aiService.safeGenerateContent(prompt, true);
+        const resultText = result.response.text();
+        
+        const parsed = JSON.parse(resultText);
+        if (parsed.intent) {
+            return parsed;
         }
     } catch (e) {
         console.error("Chatbot AI Error:", e.message);

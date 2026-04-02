@@ -55,25 +55,19 @@ Rules:
 - 'happy' is for joy, excitement, or positive news.
 - 'neutral' is for general statements or lack of strong emotion.
 
-Message: "${text}"
+Message: "${text}"`;
 
-Respond with ONLY a JSON object like this: {"emotion": "category_name"}`;
-
-    const result = await aiService.safeGenerateContent(prompt);
+    const result = await aiService.safeGenerateContent(prompt, true);
     const responseText = result.response.text();
     
-    // Parse the JSON response
+    // Parse the JSON response directly
     try {
-      // Use regex to find the first JSON object in the response
-      const jsonMatch = responseText.match(/\{[\s\S]*?\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        const detected = (parsed.emotion || emotions.NEUTRAL).toString().toLowerCase();
-        
-        // Validate that the AI returned a valid emotion
-        if (Object.values(emotions).includes(detected)) {
-          return detected;
-        }
+      const parsed = JSON.parse(responseText);
+      const detected = (parsed.emotion || emotions.NEUTRAL).toString().toLowerCase();
+      
+      // Validate that the AI returned a valid emotion
+      if (Object.values(emotions).includes(detected)) {
+        return detected;
       }
     } catch (parseError) {
       console.error("AI response parsing error. Raw response:", responseText);

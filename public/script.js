@@ -200,7 +200,7 @@ async function loadPosts() {
   isLoadingFeed = true;
 
   try {
-    let fetchUrl = `/posts?range=${currentRange}&user=${userId}`;
+    let fetchUrl = `/posts?range=${currentRange}&user=${userId}&_t=${Date.now()}`;
 
     // Add coordinates for local range
     if (currentRange === "local" && currentLat !== null && currentLng !== null) {
@@ -274,7 +274,7 @@ async function loadEmergencyPosts(container) {
     const lat = currentLat;
     const lng = currentLng;
 
-    const response = await fetch(`/posts/nearby?lat=${lat}&lng=${lng}`);
+    const response = await fetch(`/posts/nearby?lat=${lat}&lng=${lng}&_t=${Date.now()}`);
     const emergencyPosts = await response.json();
 
     emergencyPosts.forEach(post => {
@@ -687,7 +687,7 @@ async function updateChatBox() {
   if (!currentMatchId || document.getElementById("emotionMatch").style.display === "none") return;
 
   try {
-    const res = await fetch(`/posts/room/${currentMatchId}?user=${userId}`);
+    const res = await fetch(`/posts/room/${currentMatchId}?user=${userId}&_t=${Date.now()}`);
     const posts = await res.json();
     
     const roomChat = posts.filter(p => 

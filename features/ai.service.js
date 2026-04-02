@@ -32,28 +32,30 @@ async function getAIModel() {
 }
 
 /**
- * Wraps content generation with a fallback to gemini-pro if the first choice fails with a 404.
+ * Wraps content generation with a fallback to gemini-pro if the first choice fails.
  */
-async function safeGenerateContent(prompt) {
+async function safeGenerateContent(prompt, expectJson = false) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new Error("GEMINI_API_KEY is missing");
 
     const genAI = new GoogleGenerativeAI(apiKey);
+    const config = expectJson ? { responseMimeType: "application/json" } : {};
     
     // Try primary
     try {
-        const model = genAI.getGenerativeModel({ model: workingModel });
+        const model = genAI.getGenerativeModel({ model: workingModel, generationConfig: config });
         const result = await model.generateContent(prompt);
         return result;
     } catch (err) {
-        // If 404 and we were using flash, try pro
-        if (err.message.includes("404") && workingModel === "gemini-1.5-flash") {
-            console.warn("Gemini 1.5 Flash returned 404. Falling back to Gemini 1.5 Pro permanently for this session.");
-            workingModel = "gemini-1.5-pro";
-            const model = genAI.getGenerativeModel({ model: workingModel });
+        console.warn(`[AI Service] Primary model (${workingModel}) failed:`, err.message);
+        
+        // If we were using flash, try pro as a fallback strategy
+        if (workingModel === "gemini-1.5-flash") {
+            console.warn("Falling back to Gemini 1.5 Pro for this request.");
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro", generationConfig: config });
             return await model.generateContent(prompt);
         }
-        throw err; // Re-throw other errors
+        throw err; // Re-throw if already checked or failed on fallback
     }
 }
 

@@ -20,6 +20,17 @@ app.use(express.json());
 app.use(cors());
 app.use(express.static("public"));
 
+// Disable caching for api/posts to ensure real-time cross-device sync
+app.use((req, res, next) => {
+  if (req.method === 'GET') {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    res.set('Surrogate-Control', 'no-store');
+  }
+  next();
+});
+
 /* -------- EMOTION FEATURE -------- */
 const emotionRoutes = require('./features/emotion/emotion.routes');
 app.use('/api/emotion', emotionRoutes);
