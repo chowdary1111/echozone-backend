@@ -91,9 +91,15 @@ if ("geolocation" in navigator) {
 
 function openApp() {
 
-  document.getElementById("landing").style.display = "none";
+  const landing = document.getElementById("landing");
+  if (landing) {
+    landing.style.display = "none";
+  }
 
-  document.getElementById("appPage").style.display = "block";
+  const appPage = document.getElementById("appPage");
+  if (appPage) {
+    appPage.style.display = "block";
+  }
 
   updateRangeUI(); // Set correct button colors
   loadPosts(); // Load posts when app opens
@@ -110,16 +116,25 @@ function setRange(range) {
 function updateRangeUI() {
   const localBtn = document.getElementById("rangeLocal");
   const globalBtn = document.getElementById("rangeGlobal");
+  
   if (currentRange === "local") {
-    localBtn.style.background = "#ffd700";
-    localBtn.style.color = "black";
-    globalBtn.style.background = "transparent";
-    globalBtn.style.color = "white";
+    if (localBtn) {
+      localBtn.style.background = "#ffd700";
+      localBtn.style.color = "black";
+    }
+    if (globalBtn) {
+      globalBtn.style.background = "transparent";
+      globalBtn.style.color = "white";
+    }
   } else {
-    globalBtn.style.background = "#ffd700";
-    globalBtn.style.color = "black";
-    localBtn.style.background = "transparent";
-    localBtn.style.color = "white";
+    if (globalBtn) {
+      globalBtn.style.background = "#ffd700";
+      globalBtn.style.color = "black";
+    }
+    if (localBtn) {
+      localBtn.style.background = "transparent";
+      localBtn.style.color = "white";
+    }
   }
 }
 
