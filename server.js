@@ -36,28 +36,7 @@ const emotionRoutes = require('./features/emotion/emotion.routes');
 app.use('/api/emotion', emotionRoutes);
 
 /* -------- MONGODB CONNECTION -------- */
-
-const mongoUri = process.env.MONGO_URI;
-
-if (!mongoUri) {
-  console.error("❌ CRITICAL ERROR: MONGO_URI is missing from environment variables!");
-} else if (mongoUri.includes("localhost") || mongoUri.includes("127.0.0.1")) {
-  console.error("❌ CRITICAL ERROR: MONGO_URI points to localhost. Render cannot connect to a local database. Please use a MongoDB Atlas URI.");
-}
-
-const mongooseOptions = {
-  serverSelectionTimeoutMS: 5000, // Fail early if database is unreachable
-  socketTimeoutMS: 45000,         // Close sockets after 45 seconds of inactivity
-  family: 4                       // Force IPv4 - Fixes Mongoose DNS connection timeouts on Render
-};
-
-mongoose.connect(mongoUri, mongooseOptions)
-.then(() => console.log("✅ MongoDB Connected Successfully"))
-.catch(err => {
-  console.error("❌ MongoDB Connection Fatal Error!");
-  console.error("   ➡️  If this happens on Render, ensure your MongoDB Atlas 'Network Access' allows connections from anywhere (0.0.0.0/0).");
-  console.error("   ➡️  Error details:", err.message);
-});
+// DB connection logic has been moved to the startServer() function at the bottom of this file.
 
 /* -------- HAVERSINE DISTANCE (meters) -------- */
 
@@ -343,21 +322,81 @@ app.post("/api/chatbot", async (req, res) => {
  }
 });
 
+/* -------- SERVER STARTUP & DATABASE CONNECTION -------- */
+
 const PORT = process.env.PORT || 3000;
+const MAX_RETRIES = 3;
 
-app.listen(PORT, "0.0.0.0", () => {
- const localIP = getLocalIP();
- console.log(`🚀 Echozone server running on:`);
- console.log(`   - Local:            http://localhost:${PORT}`);
- console.log(`   - Network (Wi-Fi):  http://${localIP}:${PORT}`);
+async function startServer(retryCount = 0) {
+  try {
+    const mongoUri = process.env.MONGO_URI;
 
- // CHECK FOR GEMINI API KEY
- if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === "") {
-  console.log(`\n⚠️  WARNING: GEMINI_API_KEY is missing!`);
-  console.log(`   Emotional AI and Chatbot will use keyword-based fallbacks.`);
-  console.log(`   To fix this, add GEMINI_API_KEY to your .env or Render Environment Variables.`);
- } else {
-  console.log(`\n✅ GEMINI_API_KEY detected. AI features enabled.`);
- }
- console.log(`\nTo test on other devices, make sure they are on the same Wi-Fi!`);
+    if (!mongoUri) {
+      console.error("❌ CRITICAL ERROR: MONGO_URI is missing from environment variables!");
+      process.exit(1);
+    } else if (mongoUri.includes("localhost") || mongoUri.includes("127.0.0.1")) {
+      console.error("❌ CRITICAL ERROR: MONGO_URI points to localhost. Render cannot connect to a local database. Please use a MongoDB Atlas URI.");
+    }
+
+    console.log(`Connecting to MongoDB... (Attempt ${retryCount + 1}/${MAX_RETRIES})`);
+    
+    await mongoose.connect(mongoUri, {
+      serverSelectionTimeoutMS: 30000,
+      socketTimeoutMS: 45000,
+      family: 4 // Force IPv4 - Fixes Mongoose DNS connection timeouts on Render
+    });
+
+    console.log("✅ MongoDB Connected Successfully");
+
+    app.listen(PORT, "0.0.0.0", () => {
+      const localIP = getLocalIP();
+      console.log(`🚀 Echozone server running on port ${PORT}`);
+      console.log(`   - Local:            http://localhost:${PORT}`);
+      console.log(`   - Network (Wi-Fi):  http://${localIP}:${PORT}`);
+
+      // CHECK FOR GEMINI API KEY
+      if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === "") {
+        console.log(`\n⚠️  WARNING: GEMINI_API_KEY is missing!`);
+        console.log(`   Emotional AI and Chatbot will use keyword-based fallbacks.`);
+        console.log(`   To fix this, add GEMINI_API_KEY to your .env or Render Environment Variables.`);
+      } else {
+        console.log(`\n✅ GEMINI_API_KEY detected. AI features enabled.`);
+      }
+      console.log(`\nTo test on other devices, make sure they are on the same Wi-Fi!`);
+    });
+
+  } catch (error) {
+    console.error("❌ MongoDB Connection Failed:", error.message);
+
+    if (error.message.includes("ENOTFOUND")) {
+      console.error("   ➡️ Check your MONGO_URI (wrong cluster URL or DNS issue)");
+    }
+    if (error.message.includes("Authentication failed") || error.message.includes("bad auth")) {
+      console.error("   ➡️ Check your MongoDB username and password in the URL (special chars like @ need to be URL encoded)");
+    }
+    if (error.message.includes("timed out") || error.message.includes("server selection error")) {
+      console.error("   ➡️ Check IP whitelist in MongoDB Atlas (make sure 0.0.0.0/0 is added)");
+    }
+
+    if (retryCount < MAX_RETRIES - 1) {
+      console.log(`Retrying connection in 5 seconds...`);
+      setTimeout(() => startServer(retryCount + 1), 5000);
+    } else {
+      console.error("🚨 Max retries reached. Exiting securely to prevent hanging and 'buffer time out' errors...");
+      process.exit(1);
+    }
+  }
+}
+
+// Global Exception Handlers for graceful failure
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("🚨 Unhandled Rejection at:", promise, "reason:", reason);
 });
+
+process.on("uncaughtException", (error) => {
+  console.error("🚨 Uncaught Exception thrown:", error);
+  process.exit(1);
+});
+
+// Boot the application
+startServer();
