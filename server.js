@@ -37,9 +37,18 @@ app.use('/api/emotion', emotionRoutes);
 
 /* -------- MONGODB CONNECTION -------- */
 
-mongoose.connect(process.env.MONGO_URI)
-.then(() => console.log("✅ MongoDB Connected"))
-.catch(err => console.log("❌ MongoDB Connection Error:", err.message));
+const mongooseOptions = {
+  serverSelectionTimeoutMS: 5000, // Fail early if database is unreachable
+  socketTimeoutMS: 45000,         // Close sockets after 45 seconds of inactivity
+};
+
+mongoose.connect(process.env.MONGO_URI, mongooseOptions)
+.then(() => console.log("✅ MongoDB Connected Successfully"))
+.catch(err => {
+  console.error("❌ MongoDB Connection Fatal Error!");
+  console.error("   ➡️  If this happens on Render, ensure your MongoDB Atlas 'Network Access' allows connections from anywhere (0.0.0.0/0).");
+  console.error("   ➡️  Error details:", err.message);
+});
 
 /* -------- HAVERSINE DISTANCE (meters) -------- */
 
