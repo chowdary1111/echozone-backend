@@ -38,8 +38,8 @@ app.use('/api/emotion', emotionRoutes);
 /* -------- MONGODB CONNECTION -------- */
 
 mongoose.connect(process.env.MONGO_URI)
-.then(() => console.log("MongoDB Connected"))
-.catch(err => console.log("MongoDB Error:", err));
+.then(() => console.log("✅ MongoDB Connected"))
+.catch(err => console.log("❌ MongoDB Connection Error:", err.message));
 
 /* -------- HAVERSINE DISTANCE (meters) -------- */
 
@@ -118,10 +118,10 @@ app.post("/posts", async (req, res) => {
 
  } catch (err) {
 
-  console.log(err);
+  console.error("Database POST Error:", err.message);
 
   res.status(500).json({
-   error: "Error saving post"
+   error: "Database error: " + err.message
   });
 
  }

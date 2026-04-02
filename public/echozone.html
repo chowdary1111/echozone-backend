@@ -509,12 +509,6 @@
                <button id="rangeLocal" onclick="setRange('local')" style="padding:6px 12px; font-size:12px; border-radius:8px; background:#ffd700; color:black; border:none; cursor:pointer;">Nearby</button>
                <button id="rangeGlobal" onclick="setRange('global')" style="padding:6px 12px; font-size:12px; border-radius:8px; background:transparent; color:white; border:none; cursor:pointer;">Global</button>
             </div>
-            <div id="toolsMenu" style="position:relative;">
-               <button onclick="toggleTools()" class="pulse-gold">🛠️ Tools</button>
-               <div id="toolsDropdown" style="display:none; position:absolute; right:0; top:45px; background:#1e293b; border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:10px; min-width:180px; z-index:1000; box-shadow:0 10px 25px rgba(0,0,0,0.5);">
-                  <button onclick="openEmotionMode()" style="width:100%; text-align:left; background:transparent; font-size:13px; border-radius:8px; border:none; color:white; cursor:pointer; padding:10px;">✨ Emotion Matching</button>
-               </div>
-            </div>
          </div>
       </div>
 
@@ -540,97 +534,7 @@
 
    </div>
 
-   <!-- =========================
-     AI EMOTION MODAL
-========================= -->
-   <style>
-      @keyframes ai-pulse {
-         0% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.4); transform: scale(1); }
-         50% { box-shadow: 0 0 0 20px rgba(56, 189, 248, 0); transform: scale(1.05); }
-         100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); transform: scale(1); }
-      }
-      .ai-analyzer-glow {
-         width: 80px; height: 80px; border-radius: 50%;
-         background: radial-gradient(circle, #38bdf8 0%, #1e293b 100%);
-         margin: 0 auto 20px; animation: ai-pulse 2s infinite;
-         display: flex; align-items: center; justify-content: center; font-size: 30px;
-      }
-   </style>
-
-   <div id="emotionModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); z-index:1000000; overflow-y:auto; padding:20px;">
-      <div style="max-width:500px; margin:50px auto; background:#1e293b; padding:30px; border-radius:24px; border:1px solid rgba(255,255,255,0.1); position:relative;">
-         <button onclick="closeEmotionMode()" style="position:absolute; right:20px; top:20px; background:transparent; color:white; border:none; font-size:24px; cursor:pointer;">&times;</button>
-         
-         <!-- INITIAL INPUT -->
-         <div id="emotionInitial">
-            <h2 style="font-family:'Orbitron'; margin-bottom:10px; color:#38bdf8; text-align:center;">Vibe Check AI</h2>
-            <p style="text-align:center; opacity:0.6; font-size:13px; margin-bottom:20px;">Tell me how you're feeling. I'll find your perfect vibe match.</p>
-            
-            <textarea id="moodInput" placeholder="Ex: I'm feeling a bit stressed about work, need to chill..." style="width:100%; height:120px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:15px; color:white; padding:15px; font-size:14px; outline:none; margin-bottom:20px;"></textarea>
-            
-            <button onclick="analyzeMood()" style="width:100%; padding:15px; background:linear-gradient(135deg, #38bdf8, #818cf8); border:none; border-radius:15px; color:white; font-weight:bold; cursor:pointer; font-size:16px;">✨ Analyze My Vibe</button>
-         </div>
-
-         <!-- SEARCHING STATE -->
-         <div id="emotionSearching" style="display:none; text-align:center; padding:40px 0;">
-            <div class="ai-analyzer-glow">🤖</div>
-            <h3 style="color:#38bdf8; font-family:'Orbitron';">AI Analyzing...</h3>
-            <p style="opacity:0.6; font-size:14px;" id="searchingStatus">Reading your emotional frequency...</p>
-         </div>
-
-         <div id="emotionMotivation" style="display:none; text-align:center;">
-             <h2 style="color:#facc15; font-family:'Orbitron'; margin-bottom:20px;">Stay Strong, You're Not Alone.</h2>
-             <div id="motivationWall" style="display:flex; flex-direction:column; gap:12px; margin-bottom:25px; max-height:400px; overflow-y:auto; padding-right:10px;"></div>
-             <div style="display:flex; flex-direction:column; gap:10px;">
-                 <button onclick="openemergency()" style="background:#ef4444; color:white; padding:15px; font-weight:bold; border-radius:15px;">🚨 I NEED HELP - Emergency Alert</button>
-                 <button onclick="openEmotionMode()" style="background:rgba(255,255,255,0.1); color:white; border:none; padding:10px; border-radius:10px;">⬅️ Try Again</button>
-             </div>
-         </div>
-
-         <div id="emotionMatch" style="display:none;">
-            <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:15px; background:rgba(255,255,255,0.05); padding:15px; border-radius:15px; border:1px solid rgba(255,255,255,0.1);">
-               <div style="display:flex; justify-content:space-between; align-items:center;">
-                  <h2 id="matchTitle" style="color:#38bdf8; font-family:'Orbitron'; margin:0; font-size:18px;">Match Found</h2>
-                  <button onclick="openEmotionMode()" style="background:rgba(255,255,255,0.1); color:white; border:none; padding:5px 12px; border-radius:20px; font-size:11px; cursor:pointer;">🔄 New Match</button>
-               </div>
-               
-               <div style="display:flex; gap:10px; align-items:center;">
-                  <span style="font-size:12px; opacity:0.7;">Switch Room:</span>
-                  <select id="roomSelector" onchange="switchGlobalRoom(this.value)" style="flex:1; background:rgba(0,0,0,0.3); color:white; border:1px solid rgba(255,255,255,0.2); padding:8px; border-radius:10px; font-size:13px; outline:none;">
-                     <option value="general-echo">General Echo</option>
-                     <option value="vent-zone">Vent Zone</option>
-                     <option value="study-buddies">Study Buddies</option>
-                     <option value="fun-memes">Fun & Memes</option>
-                     <option value="motivation-corner">Motivation Corner</option>
-                     <option value="anonymous-confessions">Anonymous Confessions</option>
-                     <option value="chill-vibes">Chill Vibes</option>
-                  </select>
-               </div>
-            </div>
-            
-            <p id="matchSub" style="font-size:13px; opacity:0.8; margin-bottom:15px; padding:0 5px;"></p>
-
-            <div id="chatBox" style="height:300px; background:rgba(0,0,0,0.3); border-radius:12px; padding:15px; overflow-y:auto; margin-bottom:15px; display:flex; flex-direction:column; gap:10px;">
-               <!-- Messages will appear here -->
-            </div>
-            <div style="display:flex; gap:10px;">
-               <input type="text" id="chatInput" placeholder="Type a message..." style="flex:1; padding:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; color:white;">
-               <button onclick="sendChatMessage()" style="background:#10b981; color:white; padding:10px 20px;">Send</button>
-            </div>
-         </div>
-
-         <div id="emotionSearching" style="display:none; text-align:center;">
-            <div class="loader-ai" style="width:50px; height:50px; border:3px solid rgba(56,189,248,0.2); border-top-color:#38bdf8; border-radius:50%; animation:spin 1s linear infinite; margin:30px auto;"></div>
-            <h2>Finding a match...</h2>
-            <p style="opacity:0.7;">The AI is searching for someone based on your emotional state.</p>
-         </div>
-      </div>
-   </div>
-
-   <style>
-      @keyframes spin { to { transform: rotate(360deg); } }
-      .loader-ai { display: inline-block; }
-   </style>
+   <!-- AI EMOTION MODAL REMOVED FOR NOW -->
 
    <!-- LOAD SCRIPT -->
    <script src="./script.js"></script>
