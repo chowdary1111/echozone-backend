@@ -179,6 +179,19 @@ app.get("/posts", async (req, res) => {
 
 });
 
+/* -------- GET POSTS FOR SPECIFIC ROOM (Fast Sync) -------- */
+app.get("/posts/room/:recipient", async (req, res) => {
+  try {
+    const { recipient } = req.params;
+    const posts = await Post.find({ recipient })
+      .sort({ createdAt: -1 })
+      .limit(50);
+    res.json(posts);
+  } catch (err) {
+    res.status(500).json({ error: "Sync failed" });
+  }
+});
+
 /* -------- GET NEARBY EMERGENCY POSTS -------- */
 
 app.get("/posts/nearby", async (req, res) => {

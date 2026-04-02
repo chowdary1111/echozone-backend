@@ -8,6 +8,59 @@ if (!userId) {
   localStorage.setItem("echozone_userId", userId);
 }
 
+/* ============================================================
+   PROFANITY FILTER (English + Telugu)
+   Catches: d e n g u, b o s u d i, and common English slurs
+   ============================================================ */
+
+function showToast(text) {
+  let toast = document.getElementById("abusiveToast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "abusiveToast";
+    toast.innerHTML = `<span>⚠️</span> ${text}`;
+    document.body.appendChild(toast);
+  } else {
+    toast.querySelector("span").nextSibling.textContent = " " + text;
+  }
+  
+  toast.classList.add("show");
+  setTimeout(() => toast.classList.remove("show"), 3000);
+}
+
+function checkAndCensorMessage(message, isOutgoing) {
+  if (!message) return message;
+
+  // Normalized version for detection (no spaces, lowercase, restricted charset)
+  // \u0C00-\u0C7F is the Telugu Unicode range
+  const normalized = message.toLowerCase()
+    .replace(/\s+/g, '') 
+    .match(/[a-z\u0C00-\u0C7F0-9]+/g)?.join('') || "";
+
+  const badWords = [
+    // English
+    "fuck", "shit", "bitch", "asshole", "dick", "pussy", "faggot", "bastard", "slut", "whore",
+    // Telugu (including phonetic variations)
+    "dengu", "dheng", "bosudi", "bhos", "kojja", "khoj", "nayala", "naaya", "munda", "guddha", "gudda",
+    "lanja", "puku", "modda", "arey", "badacow", "vedhava", "sulla", "neeamma", "ammanee", "lanja"
+  ];
+
+  const isAbusive = badWords.some(word => 
+    normalized.includes(word) || message.toLowerCase().includes(word)
+  );
+
+  if (isAbusive) {
+    if (isOutgoing) {
+      showToast("Abusive language detected! 🚫");
+      return null; // Block sending
+    } else {
+      return "🚫 Message blocked - please be respectful";
+    }
+  }
+
+  return message;
+}
+
 // Request Notification Permission for emergencies
 if ("Notification" in window) {
   Notification.requestPermission();
@@ -81,8 +134,11 @@ async function createPost() {
 
   if (text === "") return;
 
+  const filteredText = checkAndCensorMessage(text, true);
+  if (!filteredText) return; 
+
   const postData = {
-    text: text,
+    text: filteredText,
     location: "Nearby",
     type: "normal",
     user: userId
@@ -163,8 +219,11 @@ async function loadPosts() {
     await loadEmergencyPosts(tempContainer);
 
     posts.forEach(post => {
-      if (post.isPrivate === true) return;
+      // Stricter Filter: Skip private posts, chat type, OR anything with a recipient (room messages)
+      if (post.isPrivate === true || post.type === "chat" || post.recipient) return;
 
+      const filteredText = checkAndCensorMessage(post.text, false);
+      
       let locationDisplay = post.location && post.location !== "Nearby" ? post.location : "Nearby";
       if (post.distance !== undefined && post.distance !== null && post.distance !== Infinity) {
         if (post.distance < 1000) {
@@ -184,7 +243,7 @@ async function loadPosts() {
       }
 
       div.innerHTML = `
-        ${post.text}
+        ${filteredText}
         <div class="distance">📍 ${locationDisplay}</div>
         <div class="time">${time}</div>
         ${deleteBtnHtml}
@@ -219,6 +278,7 @@ async function loadEmergencyPosts(container) {
     const emergencyPosts = await response.json();
 
     emergencyPosts.forEach(post => {
+      const filteredText = checkAndCensorMessage(post.text, false);
 
       // Notification System
       if (!knownEmergencies.has(post._id)) {
@@ -279,7 +339,7 @@ async function loadEmergencyPosts(container) {
 
         <div class="emergency-badge">🚨 EMERGENCY</div>
 
-        <div class="emergency-text">${post.text}</div>
+        <div class="emergency-text">${filteredText}</div>
 
         <div class="distance">
           📍 ${locationDisplay} ${distanceText ? "• " + distanceText : ""}
@@ -338,7 +398,7 @@ async function deletePost(id) {
 // Fallback to strict HTTP auto-polling every 5 seconds since 
 // WebSocket connections are notoriously dropped by free-tier 
 // cloud providers like Render.
-setInterval(loadPosts, 5000);
+setInterval(loadPosts, 2000); 
 
 function openemergency() {
   window.location.href = "emergency.html";
@@ -377,27 +437,31 @@ function startDeleteTimer(id, startMs, cooldown) {
 
 
 /* =========================
-   AI EMOTION & MATCHING LOGIC
+   REFACTORED MOOD & CHAT LOGIC
 ========================= */
 
 let currentMatchId = null;
 let currentEmotion = null;
+let displayedChatIds = new Set(); 
 
-const motivationalQuotes = [
-  "You're braver than you believe, stronger than you seem, and smarter than you think. - A.A. Milne",
-  "It does not matter how slowly you go as long as you do not stop. - Confucius",
-  "Hardships often prepare ordinary people for an extraordinary destiny. - C.S. Lewis",
-  "Believe you can and you're halfway there. - Theodore Roosevelt",
-  "The only way to do great work is to love what you do. - Steve Jobs",
-  "You are enough just as you are. - Meghan Markle",
-  "Keep your face always toward the sunshine—and shadows will fall behind you. - Walt Whitman",
+const motivationMessages = [
+  "You're not alone. We're here for you. / Meeru ontari kaadu. Memu unnamu.",
+  "Every storm passes, and so will this one. / Prathi tufanu aagipothundi, idi kuda.",
+  "You are stronger than you think. / Mee namma-kam mee gunde-dhairyam.",
+  "Take a deep breath. You've got this. / Okasari gattiga gaali peelchukondi.",
+  "Better days are coming. Just hold on. / Manchi rojulu mundu unnay.",
+  "Your life matters. You matter. / Mee jeevitham chala viluvainadi.",
+  "Give yourself some credit for how far you've come. / Meeru entha dooram vacharo gurtuches-kondi.",
+  "It's okay not to be okay. Reach out for help. / Meeru bada-padi-nappudu help adaga-dam tappu kaadu.",
+  "One small step at a time is enough. / Prathi chinna adugu mimmulni munduki teesukelthundi.",
+  "You are deserving of love and peace. / Meeru prema mariyu shanthiki arhulu."
 ];
 
 function openEmotionMode() {
   document.getElementById("emotionModal").style.display = "block";
   document.getElementById("emotionInitial").style.display = "block";
-  document.getElementById("emotionCritical").style.display = "none";
   document.getElementById("emotionMatch").style.display = "none";
+  document.getElementById("emotionMotivation").style.display = "none";
   document.getElementById("emotionSearching").style.display = "none";
   currentMatchId = null;
 }
@@ -407,56 +471,181 @@ function closeEmotionMode() {
   currentMatchId = null;
 }
 
-async function startAnalysis() {
-  const msg = document.getElementById("emotionMsg").value.trim();
-  if (!msg) return alert("Please share how you feel first!");
+async function analyzeMood() {
+  const input = document.getElementById("moodInput");
+  const text = input.value.trim();
+  if (!text) return alert("Please tell me how you're feeling first! ✨");
 
+  // Show searching state
   document.getElementById("emotionInitial").style.display = "none";
   document.getElementById("emotionSearching").style.display = "block";
+  const status = document.getElementById("searchingStatus");
 
   try {
+    status.innerText = "Analyzing your emotional frequency...";
+    
     const res = await fetch("/api/emotion/analyze", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, message: msg })
+      body: JSON.stringify({ userId, message: text })
     });
+    
     const data = await res.json();
-
-    document.getElementById("emotionSearching").style.display = "none";
-
-    if (data.emotion === "critical") {
-      showCriticalSupport();
-    } else if (data.matchUserId) {
-      currentMatchId = data.matchUserId;
-      currentEmotion = data.emotion;
-      showChatRoom(data.matchUserId, data.emotion);
-    } else {
-      // FALLBACK: Match with EchoBot if no human available
-      currentMatchId = "EchoBot";
-      currentEmotion = data.emotion;
-      showChatRoom("EchoBot", data.emotion);
+    
+    if (data.emotion === 'critical') {
+      showMotivationWall();
+      return;
     }
+
+    status.innerText = `Connecting you with a ${data.emotion} vibe match...`;
+    
+    // Artificial small delay for addictive "matching" feel
+    setTimeout(() => {
+      currentEmotion = data.emotion;
+      // If backend found a matchUserId, we use that, otherwise use the emotion as the room
+      currentMatchId = data.matchUserId || data.emotion; 
+      
+      showChatRoom(currentMatchId, data.emotion, data.matchUserId ? "Human Match" : "EchoBot AI");
+    }, 1500);
+
   } catch (err) {
-    console.error("Analysis failed:", err);
-    alert("AI Analysis failed. Please try again.");
-    document.getElementById("emotionInitial").style.display = "block";
+    console.error("AI Analysis failed:", err);
+    status.innerText = "AI is resting. Using local vibe detection...";
+    setTimeout(() => {
+      selectMood('chill'); // Fallback
+    }, 1000);
   }
 }
 
-function showCriticalSupport() {
-  document.getElementById("emotionCritical").style.display = "block";
-  const quote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
-  document.getElementById("quoteDisplay").innerText = `"${quote}"`;
-}
-
-function showChatRoom(matchId, emotion) {
-  document.getElementById("emotionMatch").style.display = "block";
-  if (matchId === "EchoBot") {
-    document.getElementById("matchSub").innerText = `AI matching: You're currently talking to EchoBot because no other users are online.`;
+function selectMood(mood) {
+  currentEmotion = mood;
+  
+  if (mood === 'feeling_low' || mood === 'critical') {
+    showMotivationWall();
   } else {
-    document.getElementById("matchSub").innerText = `You've been matched with ${matchId} because you both feel ${emotion}.`;
+    currentMatchId = mood;
+    showChatRoom(currentMatchId, mood);
   }
+}
+
+function switchGlobalRoom(room) {
+  // Unified Room ID: No prefixes
+  currentMatchId = room;
+  const roomName = document.getElementById("roomSelector").options[document.getElementById("roomSelector").selectedIndex].text;
+  
+  document.getElementById("matchTitle").innerText = `Room: ${roomName}`;
+  document.getElementById("matchSub").innerText = `You've joined the ${roomName} chat. Keep it respectful!`;
+  
+  // Clear and refresh
+  document.getElementById("chatBox").innerHTML = "";
+  displayedChatIds.clear();
   updateChatBox();
+}
+
+function reportMessage(msgId) {
+  if (confirm("Are you sure you want to report this message for abusive language?")) {
+    // Simulate a reporting event
+    console.log(`Reported message: ${msgId}`);
+    
+    fetch("/posts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text: `[REPORT] Message ID ${msgId} reported for abuse by ${userId}`,
+        user: userId,
+        type: "report",
+        isPrivate: true,
+        recipient: "admin"
+      })
+    });
+
+    alert("Message reported to admin. Thank you for keeping Echozone safe!");
+  }
+}
+
+function showMotivationWall() {
+  document.getElementById("emotionInitial").style.display = "none";
+  document.getElementById("emotionSearching").style.display = "none";
+  document.getElementById("emotionMotivation").style.display = "block";
+  
+  const wall = document.getElementById("motivationWall");
+  wall.innerHTML = "";
+  motivationMessages.forEach(msg => {
+    const div = document.createElement("div");
+    div.style.background = "rgba(255,255,255,0.05)";
+    div.style.padding = "15px";
+    div.style.borderRadius = "12px";
+    div.style.fontSize = "14px";
+    div.style.borderLeft = "4px solid #facc15";
+    div.innerText = msg;
+    wall.appendChild(div);
+  });
+}
+
+function showChatRoom(matchId, mood, matchType = "Community") {
+  document.getElementById("emotionInitial").style.display = "none";
+  document.getElementById("emotionSearching").style.display = "none";
+  document.getElementById("emotionMatch").style.display = "block";
+  
+  const colors = {
+    happy: "#facc15",
+    sad: "#60a5fa",
+    angry: "#f87171",
+    chill: "#10b981",
+    stress: "#c084fc",
+    neutral: "#9ca3af"
+  };
+
+  const titleColor = colors[mood] || "#38bdf8";
+  
+  document.getElementById("matchTitle").innerText = `${matchType}: ${mood.charAt(0).toUpperCase() + mood.slice(1)}`;
+  document.getElementById("matchTitle").style.color = titleColor;
+  document.getElementById("matchSub").innerText = `You've matched with someone feeling ${mood}. Share your energy!`;
+  
+  // Clear old chat and start tracking
+  document.getElementById("chatBox").innerHTML = "";
+  displayedChatIds.clear();
+  updateChatBox();
+}
+
+// Updated message element helper to include Report button
+function createMessageElement(msg, isMe, isOptimistic = false) {
+  const container = document.createElement("div");
+  container.style.display = "flex";
+  container.style.flexDirection = isMe ? "row-reverse" : "row";
+  container.style.alignItems = "flex-end";
+  container.style.gap = "8px";
+  container.style.marginBottom = "5px";
+  container.style.width = "100%";
+
+  const div = document.createElement("div");
+  div.style.background = isMe ? "#10b981" : "rgba(255,255,255,0.1)";
+  div.style.color = "white";
+  div.style.padding = "10px 15px";
+  div.style.borderRadius = isMe ? "15px 15px 2px 15px" : "15px 15px 15px 2px";
+  div.style.maxWidth = "80%";
+  div.style.fontSize = "14px";
+  div.style.boxShadow = "0 2px 8px rgba(0,0,0,0.2)";
+  if (isOptimistic) div.style.opacity = "0.7";
+  div.innerText = typeof msg === "string" ? msg : msg.text;
+
+  container.appendChild(div);
+
+  // Add Report Button for incoming messages
+  if (!isMe && !isOptimistic && typeof msg === "object") {
+    const reportBtn = document.createElement("button");
+    reportBtn.innerText = "🚩";
+    reportBtn.style.background = "transparent";
+    reportBtn.style.border = "none";
+    reportBtn.style.cursor = "pointer";
+    reportBtn.style.fontSize = "12px";
+    reportBtn.style.opacity = "0.4";
+    reportBtn.title = "Report Message";
+    reportBtn.onclick = () => reportMessage(msg._id);
+    container.appendChild(reportBtn);
+  }
+
+  return container;
 }
 
 async function sendChatMessage() {
@@ -464,61 +653,33 @@ async function sendChatMessage() {
   const text = input.value.trim();
   if (!text || !currentMatchId) return;
 
-  try {
-    if (currentMatchId === "EchoBot") {
-      // Bot response logic
-      const userMsgDiv = document.createElement("div");
-      userMsgDiv.style.alignSelf = "flex-end";
-      userMsgDiv.style.background = "#38bdf8";
-      userMsgDiv.style.color = "black";
-      userMsgDiv.style.padding = "10px 15px";
-      userMsgDiv.style.borderRadius = "15px";
-      userMsgDiv.style.maxWidth = "80%";
-      userMsgDiv.style.fontSize = "14px";
-      userMsgDiv.innerText = text;
-      document.getElementById("chatBox").appendChild(userMsgDiv);
-      
-      input.value = "";
-      
-      const res = await fetch("/api/chatbot", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: `I'm feeling ${currentEmotion} and I just said: ${text}`, user: userId })
-      });
-      const data = await res.json();
-      
-      const botMsgDiv = document.createElement("div");
-      botMsgDiv.style.alignSelf = "flex-start";
-      botMsgDiv.style.background = "rgba(255,255,255,0.1)";
-      botMsgDiv.style.color = "white";
-      botMsgDiv.style.padding = "10px 15px";
-      botMsgDiv.style.borderRadius = "15px";
-      botMsgDiv.style.maxWidth = "80%";
-      botMsgDiv.style.fontSize = "14px";
-      botMsgDiv.innerText = data.message;
-      document.getElementById("chatBox").appendChild(botMsgDiv);
-      document.getElementById("chatBox").scrollTop = document.getElementById("chatBox").scrollHeight;
-      return;
-    }
+  const filteredText = checkAndCensorMessage(text, true);
+  if (!filteredText) return;
 
-    const response = await fetch("/posts", {
+  const chatBox = document.getElementById("chatBox");
+  const optimisticMsg = createMessageElement(filteredText, true, true);
+  chatBox.appendChild(optimisticMsg);
+  chatBox.scrollTop = chatBox.scrollHeight;
+  input.value = "";
+
+  try {
+    await fetch("/posts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        text: text,
+        text: filteredText,
         user: userId,
-        recipient: currentMatchId,
-        isPrivate: true,
-        type: "normal"
+        recipient: currentMatchId, // Sending to the mood/global "room"
+        isPrivate: false,           // Now public for cross-device sync
+        type: "chat"               // Hidden from main feed via type check
       })
     });
-
-    if (response.ok) {
-      input.value = "";
-      updateChatBox();
-    }
   } catch (err) {
-    console.error("Chat send failed:", err);
+    const div = optimisticMsg.querySelector("div");
+    if (div) {
+      div.style.background = "#ef4444";
+      div.innerText += " (Error)";
+    }
   }
 }
 
@@ -526,45 +687,45 @@ async function updateChatBox() {
   if (!currentMatchId || document.getElementById("emotionMatch").style.display === "none") return;
 
   try {
-    const res = await fetch(`/posts?user=${userId}`);
+    const res = await fetch(`/posts/room/${currentMatchId}?user=${userId}`);
     const posts = await res.json();
     
-    // Filter private messages between me and my match
-    const myChat = posts.filter(p => 
-      p.isPrivate === true && 
-      ((p.user === userId && p.recipient === currentMatchId) || 
-       (p.user === currentMatchId && p.recipient === userId))
-    );
+    const roomChat = posts.filter(p => 
+      p.type === "chat" && p.recipient === currentMatchId
+    ).reverse();
 
     const chatBox = document.getElementById("chatBox");
-    chatBox.innerHTML = "";
+    let hasNew = false;
 
-    myChat.reverse().forEach(msg => {
-      const msgDiv = document.createElement("div");
-      const isMe = msg.user === userId;
-      
-      msgDiv.style.alignSelf = isMe ? "flex-end" : "flex-start";
-      msgDiv.style.background = isMe ? "#38bdf8" : "rgba(255,255,255,0.1)";
-      msgDiv.style.color = isMe ? "black" : "white";
-      msgDiv.style.padding = "10px 15px";
-      msgDiv.style.borderRadius = "15px";
-      msgDiv.style.maxWidth = "80%";
-      msgDiv.style.fontSize = "14px";
-      
-      msgDiv.innerText = msg.text;
-      chatBox.appendChild(msgDiv);
+    roomChat.forEach(msg => {
+      if (!displayedChatIds.has(msg._id)) {
+        const opt = Array.from(chatBox.children).find(c => {
+          const nestedDiv = c.querySelector("div");
+          return nestedDiv && nestedDiv.style.opacity === "0.7" && nestedDiv.innerText === msg.text;
+        });
+        if (opt) opt.remove();
+
+        const filteredText = checkAndCensorMessage(msg.text, false);
+        chatBox.appendChild(createMessageElement(msg, msg.user === userId));
+        displayedChatIds.add(msg._id);
+        hasNew = true;
+      }
     });
 
-    chatBox.scrollTop = chatBox.scrollHeight;
+    if (hasNew) chatBox.scrollTop = chatBox.scrollHeight;
   } catch (err) {
-    console.error("Chat update failed:", err);
+    console.error("Room update failed:", err);
   }
 }
 
-// Add chat update to the global poll
+// Global polling for rooms (2s)
 setInterval(() => {
-  if (currentMatchId) updateChatBox();
-}, 5000);
+  if (currentMatchId) {
+    updateChatBox();
+  }
+}, 2000);
+
+
 
 
 /* =========================

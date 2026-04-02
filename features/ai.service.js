@@ -23,8 +23,8 @@ async function getAIModel() {
         console.error(`AI Model ${workingModel} failed initialization:`, e.message);
         
         if (workingModel === "gemini-1.5-flash") {
-            console.log("Switching to fallback model: gemini-pro");
-            workingModel = "gemini-pro";
+            console.log("Switching to fallback model: gemini-1.5-pro");
+            workingModel = "gemini-1.5-pro";
             return genAI.getGenerativeModel({ model: workingModel });
         }
         return null;
@@ -48,8 +48,8 @@ async function safeGenerateContent(prompt) {
     } catch (err) {
         // If 404 and we were using flash, try pro
         if (err.message.includes("404") && workingModel === "gemini-1.5-flash") {
-            console.warn("Gemini 1.5 Flash returned 404. Falling back to Gemini Pro permanently for this session.");
-            workingModel = "gemini-pro";
+            console.warn("Gemini 1.5 Flash returned 404. Falling back to Gemini 1.5 Pro permanently for this session.");
+            workingModel = "gemini-1.5-pro";
             const model = genAI.getGenerativeModel({ model: workingModel });
             return await model.generateContent(prompt);
         }
