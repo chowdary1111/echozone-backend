@@ -8,6 +8,34 @@ if (!userId) {
   localStorage.setItem("echozone_userId", userId);
 }
 
+const processedGlobalEmergencyIds = new Set();
+let globalAudioUnlocked = false;
+
+// UNLOCK GLOBAL AUDIO ON FIRST USER CLICK
+window.addEventListener("click", () => {
+  if (!globalAudioUnlocked) {
+    const s = document.getElementById("globalNotifSound");
+    if (s) {
+      s.play().then(() => {
+        s.pause();
+        s.currentTime = 0;
+        globalAudioUnlocked = true;
+        console.log("Global Notification Sound Unlocked");
+      }).catch(e => console.log("Audio unlock retry:", e));
+    }
+  }
+}, { once: true });
+
+function playGlobalNotif() {
+  if (!globalAudioUnlocked) return;
+  const s = document.getElementById("globalNotifSound");
+  if (s) {
+    s.volume = 0.4; // Subtle
+    s.currentTime = 0;
+    s.play().catch(e => console.log("Notif blocked:", e));
+  }
+}
+
 /* ============================================================
    PROFANITY FILTER (English + Telugu)
    Catches: d e n g u, b o s u d i, and common English slurs
@@ -239,6 +267,12 @@ async function loadPosts() {
 
       const isGlobalEmergency = post.text && post.text.includes("[GLOBAL EMERGENCY]");
       const filteredText = checkAndCensorMessage(post.text, false);
+      
+      // Global Notification Sound Logic
+      if (isGlobalEmergency && !processedGlobalEmergencyIds.has(post._id)) {
+        processedGlobalEmergencyIds.add(post._id);
+        playGlobalNotif();
+      }
       
       let locationDisplay = post.location && post.location !== "Nearby" ? post.location : "Nearby";
       if (post.distance !== undefined && post.distance !== null && post.distance !== Infinity) {
@@ -803,14 +837,18 @@ async function sendChatbotMessage() {
   input.value = "";
   msgContainer.scrollTop = msgContainer.scrollHeight;
 
-  // Bot Typing Indicator
+  // Bot Typing Indicator (Waveform)
   const typingDiv = document.createElement("div");
   typingDiv.className = "chat-msg-bot typing";
   typingDiv.innerHTML = `
     <div class="bot-avatar">🤖</div>
     <div class="msg-bubble">
-      <div class="typing-dots">
-        <span></span><span></span><span></span>
+      <div class="typing-waveform">
+        <div class="typing-bar"></div>
+        <div class="typing-bar"></div>
+        <div class="typing-bar"></div>
+        <div class="typing-bar"></div>
+        <div class="typing-bar"></div>
       </div>
     </div>
   `;

@@ -398,10 +398,70 @@
         margin: 20px 10px 0;
       }
     }
+
+    /* ========================= */
+    /*  SERVICE READY OVERLAY    */
+    /* ========================= */
+
+    #unlockOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.95);
+      z-index: 1000000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 30px;
+      cursor: pointer;
+    }
+
+    #unlockOverlay h2 {
+      font-size: 32px;
+      margin-bottom: 20px;
+      color: #ffd700;
+    }
+
+    #unlockOverlay p {
+      font-size: 18px;
+      opacity: 0.8;
+      margin-bottom: 40px;
+      line-height: 1.6;
+    }
+
+    .tap-pulse {
+      width: 100px;
+      height: 100px;
+      background: #ffd700;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      color: black;
+      animation: heartBeat 1s infinite;
+      box-shadow: 0 0 40px rgba(255, 215, 0, 0.6);
+    }
+
+    @keyframes heartBeat {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.15); box-shadow: 0 0 60px rgba(255, 215, 0, 0.8); }
+      100% { transform: scale(1); }
+    }
   </style>
 </head>
 
-<body>
+<body onload="initUnlock()">
+
+  <!-- ========================= -->
+  /*  SERVICE READY OVERLAY    */
+  <!-- ========================= -->
+  <div id="unlockOverlay" onclick="confirmUnlock()">
+    <h2>🚀 Service Connection</h2>
+    <p>Tap anywhere to sync sound and haptics for emergency alerts.</p>
+    <div class="tap-pulse">👆</div>
+  </div>
 
   <button class="back-btn" onclick="history.back()">← Back</button>
 

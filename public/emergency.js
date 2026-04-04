@@ -20,6 +20,39 @@ function showStatus(message, type) {
   statusEl.className = type; // "success", "error", or "pending"
 }
 
+/* =========================
+   PERMISSION UNLOCKING (Modern Browsers)
+   ========================= */
+
+let audioUnlocked = false;
+
+function initUnlock() {
+  // Shown by default in HTML
+  console.log("Waiting for user interaction to unlock media...");
+}
+
+async function confirmUnlock() {
+  // 1. Unlock Audio
+  try {
+    sound.play();
+    sound.pause();
+    sound.currentTime = 0;
+    audioUnlocked = true;
+    console.log("Audio context unlocked ✅");
+  } catch (err) {
+    console.log("Audio unlock failed:", err);
+  }
+
+  // 2. Unlock Vibration
+  if ("vibrate" in navigator) {
+    navigator.vibrate(50); // Small pulse to test
+    console.log("Haptics unlocked ✅");
+  }
+
+  // 3. Hide Overlay
+  document.getElementById("unlockOverlay").style.display = "none";
+}
+
 /* USER IDENTIFICATION */
 let userId = localStorage.getItem("echozone_userId");
 if (!userId) {
@@ -226,31 +259,34 @@ function stopSound() {
 /* MOBILE VIBRATION */
 
 function startVibration() {
-
   if ("vibrate" in navigator) {
-
+    // SOS Pattern: 3 short, 3 long, 3 short
     navigator.vibrate([
-      400,
-      200,
-      400,
-      200,
-      800,
-      200,
-      400
+      200, 100, 200, 100, 200, 300, 
+      600, 300, 600, 300, 600, 300,
+      200, 100, 200, 100, 200
     ]);
-
+    
+    // Repeat every 3 seconds while holding
+    vibeInterval = setInterval(() => {
+      if (isHolding) {
+        navigator.vibrate([
+          200, 100, 200, 100, 200, 300, 
+          600, 300, 600, 300, 600, 300,
+          200, 100, 200, 100, 200
+        ]);
+      }
+    }, 3000);
   }
-
 }
 
+let vibeInterval;
+
 function stopVibration() {
-
   if ("vibrate" in navigator) {
-
     navigator.vibrate(0);
-
   }
-
+  if (vibeInterval) clearInterval(vibeInterval);
 }
 
 /* TOUCH EVENTS (Mobile) */
