@@ -11,6 +11,23 @@ const aiService = require("./features/ai.service");
 const Post = require("./models/Post");
 
 const app = express();
+const dbStatus = { 
+  connected: false, 
+  error: null, 
+  startTime: new Date().toISOString(),
+  lastAttempt: null
+};
+
+// Middleware to block DB routes if not connected
+const dbCheck = (req, res, next) => {
+  if (!dbStatus.connected) {
+    return res.status(503).json({ 
+      error: "Database is connecting... Please try again in a few seconds. ⏳",
+      details: dbStatus.error
+    });
+  }
+  next();
+};
 
 
 
@@ -83,9 +100,32 @@ app.get("/", (req, res) => {
  res.sendFile(__dirname + "/public/echozone.html");
 });
 
+/* -------- DIAGNOSTICS -------- */
+
+app.get("/api/diag", (req, res) => {
+  const mongoUri = process.env.MONGO_URI || "MISSING";
+  // Mask password for safety
+  const maskedUri = mongoUri.replace(/:([^:@]{1,})@/, ":****@");
+  
+  res.json({
+    status: dbStatus.connected ? "READY" : "CONNECTING",
+    database: dbStatus.connected ? "CONNECTED" : "DISCONNECTED",
+    error: dbStatus.error,
+    startTime: dbStatus.startTime,
+    lastAttempt: dbStatus.lastAttempt,
+    env: {
+      has_uri: mongoUri !== "MISSING",
+      uri_preview: maskedUri.substring(0, 30) + "...",
+      has_gemini: !!process.env.GEMINI_API_KEY,
+      node_version: process.version,
+      platform: process.platform
+    }
+  });
+});
+
 /* -------- CREATE POST -------- */
 
-app.post("/posts", async (req, res) => {
+app.post("/posts", dbCheck, async (req, res) => {
 
  try {
 
@@ -127,7 +167,7 @@ app.post("/posts", async (req, res) => {
 
 /* -------- GET ALL POSTS (normal only) -------- */
 
-app.get("/posts", async (req, res) => {
+app.get("/posts", dbCheck, async (req, res) => {
 
  try {
 
@@ -250,7 +290,7 @@ app.get("/posts/nearby", async (req, res) => {
 
 /* -------- DELETE POST -------- */
 
-app.delete("/posts/:id", async (req, res) => {
+app.delete("/posts/:id", dbCheck, async (req, res) => {
  try {
   await Post.findByIdAndDelete(req.params.id);
   res.json({ message: "Post deleted" });
@@ -325,82 +365,74 @@ app.post("/api/chatbot", async (req, res) => {
 /* -------- SERVER STARTUP & DATABASE CONNECTION -------- */
 
 const PORT = process.env.PORT || 3000;
-const MAX_RETRIES = 3;
+const MAX_RETRIES = 5; // Increased retries for background connection
 
-async function startServer(retryCount = 0) {
+async function connectToDB(retryCount = 0) {
+  const mongoUri = process.env.MONGO_URI;
+  dbStatus.lastAttempt = new Date().toISOString();
+
+  if (!mongoUri) {
+    dbStatus.error = "MONGO_URI is missing from environment variables!";
+    console.error("❌ " + dbStatus.error);
+    return;
+  }
+
   try {
-    const mongoUri = process.env.MONGO_URI;
-
-    if (!mongoUri) {
-      console.error("❌ CRITICAL ERROR: MONGO_URI is missing from environment variables!");
-      process.exit(1);
-    } else if (mongoUri.includes("localhost") || mongoUri.includes("127.0.0.1")) {
-      console.error("❌ CRITICAL ERROR: MONGO_URI points to localhost. Render cannot connect to a local database. Please use a MongoDB Atlas URI.");
-    }
-
-    // Disable buffering: if DB is down, fail fast so we see the real error
+    console.log(`📡 Connecting to MongoDB... (Attempt ${retryCount + 1}/${MAX_RETRIES})`);
+    
+    // Set options
     mongoose.set('bufferCommands', false);
 
-    console.log(`Connecting to MongoDB... (Attempt ${retryCount + 1}/${MAX_RETRIES})`);
-    
     await mongoose.connect(mongoUri, {
-      serverSelectionTimeoutMS: 30000,
+      serverSelectionTimeoutMS: 15000,
       socketTimeoutMS: 45000,
-      heartbeatFrequencyMS: 10000 // Keep connection alive
+      heartbeatFrequencyMS: 10000
     });
 
-    // Handle silent disconnects that cause 'buffer timeout' queries
-    mongoose.connection.on('disconnected', () => {
-      console.error('❌ MongoDB Disconnected! Operations will buffer and time out.');
-    });
-    mongoose.connection.on('reconnected', () => {
-      console.log('✅ MongoDB Reconnected!');
-    });
-    mongoose.connection.on('error', (err) => {
-      console.error('❌ Mongoose Connection Error:', err);
-    });
-
+    dbStatus.connected = true;
+    dbStatus.error = null;
     console.log("✅ MongoDB Connected Successfully");
 
-    app.listen(PORT, "0.0.0.0", () => {
-      const localIP = getLocalIP();
-      console.log(`🚀 Echozone server running on port ${PORT}`);
-      console.log(`   - Local:            http://localhost:${PORT}`);
-      console.log(`   - Network (Wi-Fi):  http://${localIP}:${PORT}`);
-
-      // CHECK FOR GEMINI API KEY
-      if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === "") {
-        console.log(`\n⚠️  WARNING: GEMINI_API_KEY is missing!`);
-        console.log(`   Emotional AI and Chatbot will use keyword-based fallbacks.`);
-        console.log(`   To fix this, add GEMINI_API_KEY to your .env or Render Environment Variables.`);
-      } else {
-        console.log(`\n✅ GEMINI_API_KEY detected. AI features enabled.`);
-      }
-      console.log(`\nTo test on other devices, make sure they are on the same Wi-Fi!`);
-    });
-
   } catch (error) {
+    dbStatus.connected = false;
+    dbStatus.error = error.message;
     console.error("❌ MongoDB Connection Failed:", error.message);
 
-    if (error.message.includes("ENOTFOUND")) {
-      console.error("   ➡️ Check your MONGO_URI (wrong cluster URL or DNS issue)");
-    }
-    if (error.message.includes("Authentication failed") || error.message.includes("bad auth")) {
-      console.error("   ➡️ Check your MongoDB username and password in the URL (special chars like @ need to be URL encoded)");
-    }
-    if (error.message.includes("timed out") || error.message.includes("server selection error")) {
-      console.error("   ➡️ Check IP whitelist in MongoDB Atlas (make sure 0.0.0.0/0 is added)");
-    }
-
     if (retryCount < MAX_RETRIES - 1) {
-      console.log(`Retrying connection in 5 seconds...`);
-      setTimeout(() => startServer(retryCount + 1), 5000);
+      const wait = 5000;
+      console.log(`🔄 Retrying connection in ${wait/1000} seconds...`);
+      setTimeout(() => connectToDB(retryCount + 1), wait);
     } else {
-      console.error("🚨 Max retries reached. Exiting securely to prevent hanging and 'buffer time out' errors...");
-      process.exit(1);
+      console.error("🚨 Max DB retries reached. Server will remain UP, but DB features will stay disabled.");
     }
   }
 }
+
+// Handle connection events
+mongoose.connection.on('disconnected', () => {
+  dbStatus.connected = false;
+  console.error('❌ MongoDB Disconnected!');
+});
+mongoose.connection.on('reconnected', () => {
+  dbStatus.connected = true;
+  console.log('✅ MongoDB Reconnected!');
+});
+
+// START THE SERVER IMMEDIATELY (SAFE OPTION)
+app.listen(PORT, "0.0.0.0", () => {
+  const localIP = getLocalIP();
+  console.log(`\n🚀 Echozone server is LIVE on port ${PORT}`);
+  console.log(`   - Local:            http://localhost:${PORT}`);
+  console.log(`   - Network (Wi-Fi):  http://${localIP}:${PORT}`);
+  console.log(`   - Diagnostics:      http://localhost:${PORT}/api/diag`);
+  
+  if (!process.env.GEMINI_API_KEY) {
+    console.log(`⚠️  GEMINI_API_KEY missing - AI fallbacks enabled.`);
+  }
+
+  // Connect to DB in background
+  connectToDB();
+});
 
 // Global Exception Handlers for graceful failure
 process.on("unhandledRejection", (reason, promise) => {
@@ -409,8 +441,7 @@ process.on("unhandledRejection", (reason, promise) => {
 
 process.on("uncaughtException", (error) => {
   console.error("🚨 Uncaught Exception thrown:", error);
-  process.exit(1);
+  // Do not exit on production to keep app alive
 });
 
-// Boot the application
-startServer();
+// Server is now self-booting via app.listen above.
