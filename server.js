@@ -338,12 +338,26 @@ async function startServer(retryCount = 0) {
       console.error("❌ CRITICAL ERROR: MONGO_URI points to localhost. Render cannot connect to a local database. Please use a MongoDB Atlas URI.");
     }
 
+    // Disable buffering: if DB is down, fail fast so we see the real error
+    mongoose.set('bufferCommands', false);
+
     console.log(`Connecting to MongoDB... (Attempt ${retryCount + 1}/${MAX_RETRIES})`);
     
     await mongoose.connect(mongoUri, {
       serverSelectionTimeoutMS: 30000,
       socketTimeoutMS: 45000,
-      family: 4 // Force IPv4 - Fixes Mongoose DNS connection timeouts on Render
+      heartbeatFrequencyMS: 10000 // Keep connection alive
+    });
+
+    // Handle silent disconnects that cause 'buffer timeout' queries
+    mongoose.connection.on('disconnected', () => {
+      console.error('❌ MongoDB Disconnected! Operations will buffer and time out.');
+    });
+    mongoose.connection.on('reconnected', () => {
+      console.log('✅ MongoDB Reconnected!');
+    });
+    mongoose.connection.on('error', (err) => {
+      console.error('❌ Mongoose Connection Error:', err);
     });
 
     console.log("✅ MongoDB Connected Successfully");
