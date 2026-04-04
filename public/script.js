@@ -237,6 +237,7 @@ async function loadPosts() {
       // Stricter Filter: Skip private posts, chat type, OR anything with a recipient (room messages)
       if (post.isPrivate === true || post.type === "chat" || post.recipient) return;
 
+      const isGlobalEmergency = post.text && post.text.includes("[GLOBAL EMERGENCY]");
       const filteredText = checkAndCensorMessage(post.text, false);
       
       let locationDisplay = post.location && post.location !== "Nearby" ? post.location : "Nearby";
@@ -250,19 +251,36 @@ async function loadPosts() {
 
       let time = new Date(post.createdAt).toLocaleTimeString();
       let div = document.createElement("div");
-      div.className = "post";
+      div.className = isGlobalEmergency ? "post emergency" : "post";
 
       let deleteBtnHtml = "";
       if (post.user === userId) {
         deleteBtnHtml = `<button class="delete-btn" onclick="deletePost('${post._id}')">Delete</button>`;
       }
 
-      div.innerHTML = `
-        ${filteredText}
-        <div class="distance">📍 ${locationDisplay}</div>
-        <div class="time">${time}</div>
-        ${deleteBtnHtml}
-      `;
+      if (isGlobalEmergency) {
+        div.innerHTML = `
+          <div class="emergency-badge">🚨 GLOBAL EMERGENCY</div>
+          <div class="emergency-text">${filteredText}</div>
+          <div class="distance">📍 ${locationDisplay}</div>
+          <div class="time">${time}</div>
+          ${post.lat && post.lng ? `
+            <button class="view-map-btn" 
+              style="position: absolute; right: 85px; top: 10px; background: #3b82f6; color: white; border: none; padding: 5px 12px; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 13px;"
+              onclick="window.open('https://www.google.com/maps?q=${post.lat},${post.lng}', '_blank')">
+              📍 Map
+            </button>
+          ` : ""}
+          ${deleteBtnHtml}
+        `;
+      } else {
+        div.innerHTML = `
+          ${filteredText}
+          <div class="distance">📍 ${locationDisplay}</div>
+          <div class="time">${time}</div>
+          ${deleteBtnHtml}
+        `;
+      }
       tempContainer.appendChild(div);
     });
 
@@ -778,89 +796,76 @@ async function sendChatbotMessage() {
   
   // User message
   const userDiv = document.createElement("div");
-  userDiv.className = "chat-msg-user";
-  userDiv.innerText = msg;
+  userDiv.className = "chat-msg-user pulse-in";
+  userDiv.innerHTML = `<div class="msg-bubble">${msg}</div>`;
   msgContainer.appendChild(userDiv);
   
   input.value = "";
   msgContainer.scrollTop = msgContainer.scrollHeight;
 
-  // Bot thinking...
-  const botDiv = document.createElement("div");
-  botDiv.className = "chat-msg-bot";
-  botDiv.innerText = "...";
-  msgContainer.appendChild(botDiv);
+  // Bot Typing Indicator
+  const typingDiv = document.createElement("div");
+  typingDiv.className = "chat-msg-bot typing";
+  typingDiv.innerHTML = `
+    <div class="bot-avatar">🤖</div>
+    <div class="msg-bubble">
+      <div class="typing-dots">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+  `;
+  msgContainer.appendChild(typingDiv);
+  msgContainer.scrollTop = msgContainer.scrollHeight;
 
   try {
-    // GPS Check: Ensure location is available before searching - with FORCE DETECT
-    if ((msg.toLowerCase().includes("hospital") || msg.toLowerCase().includes("police")) && (!currentLat || !currentLng)) {
-      botDiv.innerHTML = "<div>Locating you... Please wait just a second. 📍</div>";
-      
-      // Force an immediate high-accuracy position check
-      await new Promise((resolve) => {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            currentLat = pos.coords.latitude;
-            currentLng = pos.coords.longitude;
-            resolve();
-          },
-          (err) => {
-            console.log("Force location failed:", err.message);
-            resolve();
-          },
-          { timeout: 5000, enableHighAccuracy: true }
-        );
-      });
-
-      if (!currentLat || !currentLng) {
-        botDiv.innerHTML = "<div>I'm still having trouble finding your location. Please check your GPS settings so I can find local results for you! 📍</div>";
-        return;
-      }
-    }
-
     const res = await fetch("/api/chatbot", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         message: msg,
-        user: userId, // Ensure auto-post uses correct user ID
         lat: currentLat,
-        lng: currentLng
+        lng: currentLng,
+        user: userId
       })
     });
+    
     const data = await res.json();
+    typingDiv.remove();
 
-    botDiv.innerHTML = `<div>${data.message || "I'm sorry, I couldn't process that."}</div>`;
+    const botDiv = document.createElement("div");
+    botDiv.className = "chat-msg-bot pulse-in";
+    
+    let botHtml = `<div class="bot-avatar">🤖</div><div class="msg-bubble">${data.message || "I'm sorry, I'm resting. 💤"}</div>`;
+    
+    if (data.locations && data.locations.length > 0) {
+      botHtml += `<div class="bot-locations">`;
+      data.locations.slice(0, 3).forEach(loc => {
+        botHtml += `
+          <div class="loc-card" onclick="window.open('https://www.google.com/maps?q=${loc.lat},${loc.lng}', '_blank')">
+            <strong>📍 ${loc.name}</strong><br>
+            <span style="font-size: 11px; opacity: 0.8">${loc.address}</span>
+          </div>
+        `;
+      });
+      botHtml += `</div>`;
+    }
+
+    botDiv.innerHTML = botHtml;
+    msgContainer.appendChild(botDiv);
+    msgContainer.scrollTop = msgContainer.scrollHeight;
 
     if (data.autoPosted) {
       // Refresh feed since bot automatically posted for us!
-      setTimeout(loadPosts, 1000);
-    }
-
-    if (data.locations && data.locations.length > 0) {
-      data.locations.forEach(loc => {
-        const locCard = document.createElement("div");
-        locCard.className = "loc-card";
-        
-        let directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${loc.lat},${loc.lng}`;
-        if (currentLat && currentLng) {
-          directionsUrl += `&origin=${currentLat},${currentLng}`;
-        }
-
-        locCard.innerHTML = `
-          <b>${loc.name}</b>
-          <span style="font-size:12px; opacity:0.8;">📍 ${loc.address}</span>
-          <button onclick="window.open('${directionsUrl}', '_blank')">🚀 Get Directions</button>
-        `;
-        botDiv.appendChild(locCard);
-      });
+      setTimeout(loadPosts, 1500);
     }
 
   } catch (err) {
-    botDiv.innerText = "Error connecting to AI. Please try again.";
+    if (typingDiv) typingDiv.remove();
+    const errorDiv = document.createElement("div");
+    errorDiv.className = "chat-msg-bot";
+    errorDiv.innerHTML = `<div class="bot-avatar">🤖</div><div class="msg-bubble" style="background: rgba(239, 68, 68, 0.2)">Service interrupted. Try again soon.</div>`;
+    msgContainer.appendChild(errorDiv);
   }
-  
-  msgContainer.scrollTop = msgContainer.scrollHeight;
 }
 
 async function postFromChatbot(text) {

@@ -619,81 +619,138 @@
          100% { box-shadow: 0 0 10px red; }
       }
 
-      .chat-msg-user {
-         background: #38bdf8;
-         color: black;
-         padding: 10px 15px;
-         border-radius: 15px;
-         align-self: flex-end;
-         border-bottom-right-radius: 2px;
-         max-width: 80%;
+      /* =========================
+         PREMIUM CHATBOT UI
+      ========================= */
+      
+      #chatbotModal {
+         background: rgba(15, 23, 42, 0.95) !important;
+         backdrop-filter: blur(20px);
+         border: 1px solid rgba(56, 189, 248, 0.3) !important;
+         box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 20px rgba(56, 189, 248, 0.1);
       }
 
-      .chat-msg-bot {
-         background: rgba(255,255,255,0.05);
+      #chatbotHeader {
+         background: rgba(56, 189, 248, 0.1) !important;
+         border-bottom: 1px solid rgba(56, 189, 248, 0.2) !important;
+      }
+
+      .chat-msg-user, .chat-msg-bot {
+         display: flex;
+         gap: 12px;
+         margin-bottom: 15px;
+         max-width: 85%;
+      }
+
+      .chat-msg-user {
+         align-self: flex-end;
+         flex-direction: row-reverse;
+      }
+
+      .msg-bubble {
+         padding: 12px 18px;
+         border-radius: 18px;
+         font-size: 14px;
+         line-height: 1.5;
+         position: relative;
+         box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      }
+
+      .chat-msg-user .msg-bubble {
+         background: linear-gradient(135deg, #38bdf8, #2563eb);
          color: white;
-         padding: 10px 15px;
-         border-radius: 15px;
-         align-self: flex-start;
-         border-bottom-left-radius: 2px;
-         max-width: 80%;
+         border-bottom-right-radius: 4px;
+      }
+
+      .chat-msg-bot .msg-bubble {
+         background: rgba(255, 255, 255, 0.08);
+         color: #f1f5f9;
          border: 1px solid rgba(255,255,255,0.1);
+         border-bottom-left-radius: 4px;
+      }
+
+      .bot-avatar {
+         width: 32px;
+         height: 32px;
+         background: rgba(56, 189, 248, 0.2);
+         border: 1px solid rgba(56, 189, 248, 0.4);
+         border-radius: 50%;
+         display: flex;
+         align-items: center;
+         justify-content: center;
+         font-size: 18px;
+         flex-shrink: 0;
+      }
+
+      /* Typing Indicator */
+      .typing-dots {
+         display: flex;
+         gap: 4px;
+         padding: 5px 0;
+      }
+
+      .typing-dots span {
+         width: 6px;
+         height: 6px;
+         background: #94a3b8;
+         border-radius: 50%;
+         animation: typingBounce 1.4s infinite ease-in-out;
+      }
+
+      .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+      .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+      @keyframes typingBounce {
+         0%, 80%, 100% { transform: scale(0); }
+         40% { transform: scale(1); }
+      }
+
+      .pulse-in {
+         animation: pulseIn 0.3s ease-out;
+      }
+
+      @keyframes pulseIn {
+         0% { opacity: 0; transform: scale(0.95); }
+         100% { opacity: 1; transform: scale(1); }
+      }
+
+      .bot-locations {
+         margin-top: 10px;
+         display: grid;
+         gap: 10px;
+         width: 100%;
       }
 
       .loc-card {
-         background: rgba(255,255,255,0.05);
-         border: 1px solid rgba(56, 189, 248, 0.3);
-         border-radius: 10px;
-         padding: 10px;
-         margin-top: 5px;
-         display: flex;
-         flex-direction: column;
-         gap: 5px;
-      }
-
-      .loc-card b { color: #38bdf8; }
-      .loc-card button {
-         background: #38bdf8;
-         color: black;
-         font-size: 11px;
-         padding: 5px 10px;
-         border-radius: 5px;
-         width: fit-content;
-      }
-
-      /* Gold Pulse Theme */
-      .pulse-gold {
-         background: rgba(0,0,0,0.5);
-         color: #ffd700;
-         border: 2px solid #ffd700;
-         border-radius: 10px;
-         padding: 8px 15px;
-         font-size: 14px;
-         font-weight: bold;
+         background: rgba(56, 189, 248, 0.1);
+         border: 1px solid rgba(56, 189, 248, 0.2);
+         border-radius: 12px;
+         padding: 12px;
          cursor: pointer;
-         animation: pulseGold 2s infinite;
-         box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
-         transition: 0.3s;
+         transition: all 0.2s ease;
       }
 
-      .pulse-gold:hover {
-         background: rgba(255, 215, 0, 0.1);
-         box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+      .loc-card:hover {
+         background: rgba(56, 189, 248, 0.2);
+         transform: translateY(-2px);
+         box-shadow: 0 5px 15px rgba(56, 189, 248, 0.1);
+      }
+
+      /* Global Emergency Marker Overrides */
+      .post.emergency .emergency-badge {
+         background: linear-gradient(90deg, #f59e0b, #ef4444);
+         animation: blinkBadge 1s infinite alternate;
+      }
+
+      @keyframes blinkBadge {
+         from { filter: brightness(1); }
+         to { filter: brightness(1.3); box-shadow: 0 0 10px #ef4444; }
       }
 
       @keyframes pulseGold {
-         0% {
-            box-shadow: 0 0 5px rgba(255, 215, 0, 0.4);
-            border-color: #ffd700;
-         }
-         50% {
-            box-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
-            border-color: #ffb700;
-         }
-         100% {
-            box-shadow: 0 0 5px rgba(255, 215, 0, 0.4);
-            border-color: #ffd700;
-         }
+         0% { box-shadow: 0 0 5px rgba(255, 215, 0, 0.4); border-color: #ffd700; }
+         50% { box-shadow: 0 0 15px rgba(255, 215, 0, 0.8); border-color: #ffb700; }
+         100% { box-shadow: 0 0 5px rgba(255, 215, 0, 0.4); border-color: #ffd700; }
       }
    </style>
 </body>
