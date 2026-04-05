@@ -18,6 +18,7 @@ let globalAudioUnlocked = false;
 let currentRange = localStorage.getItem("echozone_range") || "local";
 let currentLat = null;
 let currentLng = null;
+let isLoadingFeed = false;
 
 /* =========================
    SOCKET.IO REAL-TIME
@@ -250,8 +251,6 @@ async function createPost() {
 /* =========================
    LOAD POSTS FROM SERVER
 ========================= */
-
-let isLoadingFeed = false;
 
 async function loadPosts() {
   if (isLoadingFeed) return;
