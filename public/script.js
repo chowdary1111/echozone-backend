@@ -12,13 +12,42 @@ if (!userId) {
    STATE
 ========================= */
 
-const processedGlobalEmergencyIds = new Set();
-const knownEmergencies = new Set();
+// Persist seen emergency IDs in localStorage to survive page refreshes
+// This prevents the emergency sound/notification from firing again for already-seen posts
+function loadSeenSet(key) {
+  try { return new Set(JSON.parse(localStorage.getItem(key) || "[]")); }
+  catch { return new Set(); }
+}
+function saveSeenSet(key, set) {
+  // Keep only the last 200 IDs to avoid unbounded storage growth
+  const arr = [...set].slice(-200);
+  localStorage.setItem(key, JSON.stringify(arr));
+}
+
+const processedGlobalEmergencyIds = loadSeenSet("echozone_seen_global");
+const knownEmergencies = loadSeenSet("echozone_seen_emergency");
 let globalAudioUnlocked = false;
 let currentRange = localStorage.getItem("echozone_range") || "local";
 let currentLat = null;
 let currentLng = null;
 let isLoadingFeed = false;
+
+/* =========================
+   GEOLOCATION HELPERS
+========================= */
+
+function haversineDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371000; // Earth radius in meters
+  const toRad = (deg) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
 
 /* =========================
    SOCKET.IO REAL-TIME
@@ -35,10 +64,39 @@ socket.on("disconnect", () => {
   console.log("⚡ Socket.IO disconnected");
 });
 
-// When any client creates a new post, reload the feed
+// When any client creates a new post, inject it directly into the DOM (instant sync)
 socket.on("new_post", (post) => {
-  // Trigger a feed reload (debounced to avoid hammering)
-  scheduleReload();
+  // Skip private / chat / room messages
+  if (post.isPrivate === true || post.type === "chat" || post.recipient) return;
+
+  // Handle Emergency Posts Instantly
+  if (post.type === "emergency") {
+    if (currentLat !== null && currentLng !== null && post.lat && post.lng) {
+      const dist = haversineDistance(currentLat, currentLng, post.lat, post.lng);
+      if (dist <= 1000) {
+        // Only show alerts if we haven't seen this ID yet
+        if (!knownEmergencies.has(post._id)) {
+          knownEmergencies.add(post._id);
+          saveSeenSet("echozone_seen_emergency", knownEmergencies);
+
+          // Only show for OTHER users
+          if (post.user !== userId) {
+            showMotivationalBanner(dist, post.location);
+            if ("Notification" in window && Notification.permission === "granted") {
+              new Notification("🚨 Echozone Emergency Alert!", {
+                body: `Help needed ${Math.round(dist)}m away at ${post.location}!`,
+              });
+            }
+          }
+        }
+        // Force a total reload to ensure emergency posts are at the top and correct
+        loadPosts();
+      }
+    }
+    return;
+  }
+
+  injectPostIntoDom(post);
 });
 
 // When any client deletes a post, remove it from DOM immediately
@@ -47,11 +105,77 @@ socket.on("delete_post", ({ id }) => {
   if (el) el.remove();
 });
 
+// Fallback reload (used only on initial load or manual range change)
 let reloadTimer = null;
 function scheduleReload() {
-  // Debounce: wait 300ms before reloading to batch rapid events
   clearTimeout(reloadTimer);
   reloadTimer = setTimeout(() => loadPosts(), 300);
+}
+
+/* =========================
+   INSTANT POST INJECTION (Socket)
+========================= */
+
+function injectPostIntoDom(post) {
+  const postsContainer = document.getElementById("posts");
+  if (!postsContainer) return;
+
+  // Don't add duplicates
+  if (document.getElementById(`post-${post._id}`)) return;
+
+  const isGlobalEmergency = post.text && post.text.includes("[GLOBAL EMERGENCY]");
+  const filteredText = checkAndCensorMessage(post.text, false);
+
+  // Play global alert sound for global emergencies (only once per ID)
+  if (isGlobalEmergency && !processedGlobalEmergencyIds.has(post._id)) {
+    processedGlobalEmergencyIds.add(post._id);
+    saveSeenSet("echozone_seen_global", processedGlobalEmergencyIds);
+    playGlobalNotif();
+  }
+
+  let locationDisplay = post.location && post.location !== "Nearby" ? post.location : "Nearby";
+  const time = new Date(post.createdAt).toLocaleTimeString();
+
+  const div = document.createElement("div");
+  div.id = `post-${post._id}`;
+  div.className = isGlobalEmergency ? "post emergency" : "post";
+
+  let deleteBtnHtml = "";
+  if (post.user === userId) {
+    deleteBtnHtml = `<button class="delete-btn" onclick="deletePost('${post._id}')">Delete</button>`;
+  }
+
+  if (isGlobalEmergency) {
+    div.innerHTML = `
+      <div class="emergency-badge">🚨 GLOBAL EMERGENCY</div>
+      <div class="emergency-text">${filteredText}</div>
+      <div class="distance">📍 ${locationDisplay}</div>
+      <div class="time">${time}</div>
+      ${post.lat && post.lng ? `
+        <button class="view-map-btn"
+          style="position:absolute;right:85px;top:10px;background:#3b82f6;color:white;border:none;padding:5px 12px;border-radius:20px;cursor:pointer;font-weight:bold;font-size:13px;"
+          onclick="window.open('https://www.google.com/maps?q=${post.lat},${post.lng}','_blank')">
+          📍 Map
+        </button>
+      ` : ""}
+      ${deleteBtnHtml}
+    `;
+  } else {
+    div.innerHTML = `
+      ${filteredText}
+      <div class="distance">📍 ${locationDisplay}</div>
+      <div class="time">${time}</div>
+      ${deleteBtnHtml}
+    `;
+  }
+
+  // Prepend (newest first) before existing posts but after emergency posts
+  const firstNonEmergency = postsContainer.querySelector(".post:not(.emergency)");
+  if (firstNonEmergency) {
+    postsContainer.insertBefore(div, firstNonEmergency);
+  } else {
+    postsContainer.appendChild(div);
+  }
 }
 
 /* =========================
@@ -279,9 +403,10 @@ async function loadPosts() {
       const isGlobalEmergency = post.text && post.text.includes("[GLOBAL EMERGENCY]");
       const filteredText = checkAndCensorMessage(post.text, false);
 
-      // Global Notification Sound
+      // Global Notification Sound — only play once per ID (persisted in localStorage)
       if (isGlobalEmergency && !processedGlobalEmergencyIds.has(post._id)) {
         processedGlobalEmergencyIds.add(post._id);
+        saveSeenSet("echozone_seen_global", processedGlobalEmergencyIds);
         playGlobalNotif();
       }
 
@@ -356,10 +481,16 @@ async function loadEmergencyPosts(container) {
 
       if (!knownEmergencies.has(post._id)) {
         knownEmergencies.add(post._id);
-        if ("Notification" in window && Notification.permission === "granted" && post.user !== userId) {
-          new Notification("🚨 Echozone Emergency Alert!", {
-            body: `Help needed ${Math.round(post.distance)}m away at ${post.location}!`,
-          });
+        // Persist so we don't re-alert on page refresh
+        saveSeenSet("echozone_seen_emergency", knownEmergencies);
+        // Only show motivational banner and notification for OTHER users' emergencies
+        if (post.user !== userId) {
+          showMotivationalBanner(post.distance, post.location);
+          if ("Notification" in window && Notification.permission === "granted") {
+            new Notification("\uD83D\uDEA8 Echozone Emergency Alert!", {
+              body: `Help needed ${Math.round(post.distance)}m away at ${post.location}!`,
+            });
+          }
         }
       }
 
@@ -464,6 +595,99 @@ function startDeleteTimer(id, startMs, cooldown) {
 
 function openemergency() {
   window.location.href = "emergency.html";
+}
+
+/* =========================
+   MOTIVATIONAL EMERGENCY BANNER
+========================= */
+
+const MOTIV_MESSAGES = [
+  {
+    quote: "<em>One act of courage</em> can save a life. Now is your moment.",
+    action: "Check on them. Your presence alone can make a difference."
+  },
+  {
+    quote: "The world needs <em>heroes without capes</em> — starting with you, right now.",
+    action: "Stay calm. A calm helper is the most powerful helper."
+  },
+  {
+    quote: "<em>Don't look away.</em> Someone nearby is counting on a stranger like you.",
+    action: "Call 112 immediately and stay with them until help arrives."
+  },
+  {
+    quote: "Every second counts. <em>You could be their reason</em> to hold on.",
+    action: "Move toward them, not away. Courage is a choice."
+  },
+  {
+    quote: "In someone's darkest moment, <em>your light is everything.</em>",
+    action: "Speak to them calmly. Let them know they are not alone."
+  },
+  {
+    quote: "<em>Ordinary people</em> change lives in extraordinary moments — this is yours.",
+    action: "Alert others nearby and call emergency services immediately."
+  },
+  {
+    quote: "Fear is natural. <em>Acting despite fear</em> is what makes you a hero.",
+    action: "Even calling 112 and staying on the line can save a life."
+  },
+  {
+    quote: "<em>Humanity at its best</em> is a neighbor who shows up when it matters most.",
+    action: "Don't wait for someone else — be the someone else they're waiting for."
+  }
+];
+
+let motivDismissTimer = null;
+
+function showMotivationalBanner(distance, location) {
+  const banner = document.getElementById("motivationBanner");
+  if (!banner) return;
+
+  // Pick a random message
+  const msg = MOTIV_MESSAGES[Math.floor(Math.random() * MOTIV_MESSAGES.length)];
+
+  // Set distance text
+  const distEl = document.getElementById("motivDistanceText");
+  if (distEl) {
+    if (distance !== undefined && distance < 1000) {
+      distEl.textContent = `Someone ${Math.round(distance)}m away needs help — ${location || "nearby"}`;
+    } else if (distance !== undefined) {
+      distEl.textContent = `Someone ${(distance / 1000).toFixed(1)}km away needs help — ${location || "nearby"}`;
+    } else {
+      distEl.textContent = `Someone near you needs help — ${location || "nearby"}`;
+    }
+  }
+
+  // Set quote and action text
+  const quoteEl = document.getElementById("motivQuote");
+  const actionEl = document.getElementById("motivAction");
+  if (quoteEl) quoteEl.innerHTML = `"${msg.quote}"`;
+  if (actionEl) actionEl.textContent = msg.action;
+
+  // Show banner
+  banner.classList.add("show");
+
+  // Animate progress bar countdown (9 seconds)
+  const bar = document.getElementById("motivProgressBar");
+  if (bar) {
+    bar.style.transition = "none";
+    bar.style.transform = "scaleX(1)";
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        bar.style.transition = "transform 9s linear";
+        bar.style.transform = "scaleX(0)";
+      });
+    });
+  }
+
+  // Auto-dismiss after 9 seconds
+  clearTimeout(motivDismissTimer);
+  motivDismissTimer = setTimeout(() => dismissMotivBanner(), 9000);
+}
+
+function dismissMotivBanner() {
+  const banner = document.getElementById("motivationBanner");
+  if (banner) banner.classList.remove("show");
+  clearTimeout(motivDismissTimer);
 }
 
 /* =========================

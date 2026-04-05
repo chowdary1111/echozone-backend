@@ -350,6 +350,7 @@
       font-size: 24px;
       font-weight: 700;
       background: linear-gradient(90deg, #f43f5e, #facc15);
+      background-clip: text;
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
@@ -449,6 +450,76 @@
       50% { transform: scale(1.15); box-shadow: 0 0 60px rgba(255, 215, 0, 0.8); }
       100% { transform: scale(1); }
     }
+    /* ========================= */
+    /*  ROTATING MOTIVATIONAL     */
+    /* ========================= */
+
+    #motivQuoteBox {
+      margin-top: 28px;
+      padding: 20px 24px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 18px;
+      max-width: 520px;
+      margin-left: auto;
+      margin-right: auto;
+      text-align: center;
+      backdrop-filter: blur(10px);
+      position: relative;
+      z-index: 3;
+      animation: fadeSlideUp 0.7s ease both;
+    }
+
+    .motiv-tag {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.35);
+      margin-bottom: 12px;
+    }
+
+    #motivQuoteText {
+      font-size: 18px;
+      font-weight: 600;
+      line-height: 1.6;
+      color: #f1f5f9;
+      min-height: 60px;
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+
+    #motivQuoteText.fade-out {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+
+    #motivQuoteText em {
+      font-style: normal;
+      background: linear-gradient(90deg, #fbbf24, #f97316);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .motiv-dots {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 14px;
+    }
+
+    .motiv-dot-ind {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      transition: background 0.4s, transform 0.4s;
+    }
+
+    .motiv-dot-ind.active {
+      background: #fbbf24;
+      transform: scale(1.4);
+    }
   </style>
 </head>
 
@@ -488,6 +559,13 @@
     </button>
 
     <div id="emergencyStatus"></div>
+
+    <!-- Rotating motivational quotes for the person in crisis -->
+    <div id="motivQuoteBox">
+      <div class="motiv-tag">💛 A message for you</div>
+      <div id="motivQuoteText"></div>
+      <div class="motiv-dots" id="motivDots"></div>
+    </div>
   </div>
 
   <!-- MAP SECTION -->
@@ -504,6 +582,54 @@
 
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Rotating motivational quotes logic -->
+  <script>
+    const CRISIS_QUOTES = [
+      "You reached out — that took <em>real courage.</em> Help is on the way.",
+      "<em>You are not alone.</em> This community stands with you right now.",
+      "The hardest step was asking for help. <em>You already did it.</em>",
+      "Breathe slowly. <em>In through the nose,</em> out through the mouth. You've got this.",
+      "Every storm runs out of rain. <em>This moment will pass.</em> Hold on.",
+      "You matter more than you know. <em>People care about you</em> — including strangers.",
+      "<em>Stay where you are.</em> Help is coming. You did the right thing.",
+      "Your life has value beyond measure. <em>The world is better with you in it.</em>"
+    ];
+
+    let crisisQuoteIndex = 0;
+    const crisisQuoteEl = document.getElementById("motivQuoteText");
+    const crisisDots = document.getElementById("motivDots");
+
+    // Build dot indicators
+    CRISIS_QUOTES.forEach((_, i) => {
+      const d = document.createElement("span");
+      d.className = "motiv-dot-ind" + (i === 0 ? " active" : "");
+      d.id = "crisisdot-" + i;
+      if (crisisDots) crisisDots.appendChild(d);
+    });
+
+    function renderCrisisQuote(index) {
+      if (!crisisQuoteEl) return;
+      crisisQuoteEl.classList.add("fade-out");
+      setTimeout(() => {
+        crisisQuoteEl.innerHTML = "&ldquo;" + CRISIS_QUOTES[index] + "&rdquo;";
+        crisisQuoteEl.classList.remove("fade-out");
+        // Update dots
+        document.querySelectorAll(".motiv-dot-ind").forEach((d, i) => {
+          d.classList.toggle("active", i === index);
+        });
+      }, 500);
+    }
+
+    // Show first quote immediately
+    renderCrisisQuote(0);
+
+    // Cycle every 6 seconds
+    setInterval(() => {
+      crisisQuoteIndex = (crisisQuoteIndex + 1) % CRISIS_QUOTES.length;
+      renderCrisisQuote(crisisQuoteIndex);
+    }, 6000);
+  </script>
 
   <script src="emergency.js"></script>
 </body>
