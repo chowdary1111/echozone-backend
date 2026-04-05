@@ -3,6 +3,8 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
+const http = require("http");
+const { Server } = require("socket.io");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const getLocalIP = require("./get-ip.cjs");
 const chatbotService = require("./features/chatbot.service");
@@ -11,6 +13,11 @@ const aiService = require("./features/ai.service");
 const Post = require("./models/Post");
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: { origin: "*" }
+});
+
 const dbStatus = { 
   connected: false, 
   error: null, 
@@ -141,13 +148,16 @@ app.post("/posts", dbCheck, async (req, res) => {
    location: req.body.location,
    type: req.body.type || "normal",
    user: req.body.user,
-   recipient: req.body.recipient, // FIX: Inclusion of recipient field for privacy
-   isPrivate: req.body.isPrivate || false, // FIX: Inclusion of isPrivate flag for privacy
+   recipient: req.body.recipient,
+   isPrivate: req.body.isPrivate || false,
    lat: req.body.lat,
    lng: req.body.lng
   });
 
   await post.save();
+
+  // ✅ Broadcast new post to all connected Socket.IO clients
+  io.emit("new_post", post.toObject());
 
   res.status(201).json({
    message: "Post saved successfully"
@@ -210,7 +220,7 @@ app.get("/posts", dbCheck, async (req, res) => {
    }
    return postObj;
   })
-  .filter(post => post.distance <= 10000 || post.distance === Infinity) // Within 10km (increased from 5km) OR location unknown
+  .filter(post => post.distance <= 10000 || post.distance === Infinity) // Within 10km OR location unknown
   .sort((a, b) => a.distance - b.distance); // Nearest first
 
   res.json(postsWithDistance);
@@ -293,6 +303,8 @@ app.get("/posts/nearby", async (req, res) => {
 app.delete("/posts/:id", dbCheck, async (req, res) => {
  try {
   await Post.findByIdAndDelete(req.params.id);
+  // Notify clients of deletion
+  io.emit("delete_post", { id: req.params.id });
   res.json({ message: "Post deleted" });
  } catch (err) {
   console.log(err);
@@ -321,10 +333,8 @@ app.post("/api/chatbot", async (req, res) => {
    });
   }
 
-  // Default response (Chatting) - NOW AUTO-POSTS TO FEED
+  // Default response (Chatting) - AUTO-POSTS TO FEED
   try {
-   const apiKey = process.env.GEMINI_API_KEY;
-
    // Auto-publish non-location thoughts to Echozone Feed
    const autoPost = new Post({
     text: message,
@@ -335,6 +345,9 @@ app.post("/api/chatbot", async (req, res) => {
     type: "normal"
    });
    await autoPost.save();
+
+   // Broadcast new auto post
+   io.emit("new_post", autoPost.toObject());
 
    if (!process.env.GEMINI_API_KEY) throw new Error("Missing API Key");
 
@@ -360,6 +373,15 @@ app.post("/api/chatbot", async (req, res) => {
   console.error("Critical Chatbot Error:", err);
   res.status(500).json({ error: "Assistant is currently resting. Please try again soon." });
  }
+});
+
+/* -------- SOCKET.IO CONNECTION -------- */
+
+io.on("connection", (socket) => {
+  console.log(`🔌 Client connected: ${socket.id}`);
+  socket.on("disconnect", () => {
+    console.log(`🔌 Client disconnected: ${socket.id}`);
+  });
 });
 
 /* -------- SERVER STARTUP & DATABASE CONNECTION -------- */
@@ -418,8 +440,8 @@ mongoose.connection.on('reconnected', () => {
   console.log('✅ MongoDB Reconnected!');
 });
 
-// START THE SERVER IMMEDIATELY (SAFE OPTION)
-app.listen(PORT, "0.0.0.0", () => {
+// START THE SERVER (using http server to support Socket.IO)
+server.listen(PORT, "0.0.0.0", () => {
   const localIP = getLocalIP();
   console.log(`\n🚀 Echozone server is LIVE on port ${PORT}`);
   console.log(`   - Local:            http://localhost:${PORT}`);
@@ -443,5 +465,3 @@ process.on("uncaughtException", (error) => {
   console.error("🚨 Uncaught Exception thrown:", error);
   // Do not exit on production to keep app alive
 });
-
-// Server is now self-booting via app.listen above.
