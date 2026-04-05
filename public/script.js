@@ -156,8 +156,16 @@ function openApp() {
   const appPage = document.getElementById("appPage");
   if (appPage) appPage.style.display = "block";
 
+  // Remember the user entered the app so back-navigation skips the landing
+  sessionStorage.setItem("echozone_entered", "true");
+
   updateRangeUI();
   loadPosts();
+}
+
+// Auto-skip landing if already entered (e.g. coming back from emergency.html)
+if (sessionStorage.getItem("echozone_entered") === "true") {
+  openApp();
 }
 
 function setRange(range) {
