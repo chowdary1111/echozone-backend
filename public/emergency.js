@@ -34,9 +34,11 @@ function initUnlock() {
 async function confirmUnlock() {
   // 1. Unlock Audio
   try {
-    sound.play();
+    // Explicitly play and pause to satisfy iOS Safari
+    sound.muted = true; 
+    await sound.play();
     sound.pause();
-    sound.currentTime = 0;
+    sound.muted = false;
     audioUnlocked = true;
     console.log("Audio context unlocked ✅");
   } catch (err) {
@@ -45,8 +47,7 @@ async function confirmUnlock() {
 
   // 2. Unlock Vibration
   if ("vibrate" in navigator) {
-    navigator.vibrate(50); // Small pulse to test
-    console.log("Haptics unlocked ✅");
+    navigator.vibrate(50);
   }
 
   // 3. Hide Overlay

@@ -31,6 +31,8 @@ let currentRange = localStorage.getItem("echozone_range") || "local";
 let currentLat = null;
 let currentLng = null;
 let isLoadingFeed = false;
+let firstGpsLock = false; // Flag to trigger first real load
+let nearestEmergencyDist = Infinity;
 
 /* =========================
    GEOLOCATION HELPERS
@@ -264,6 +266,13 @@ if ("geolocation" in navigator) {
     (position) => {
       currentLat = position.coords.latitude;
       currentLng = position.coords.longitude;
+
+      // Trigger first real load once GPS is acquired
+      if (!firstGpsLock) {
+        firstGpsLock = true;
+        console.log("📍 GPS Lock Acquired. Refreshing feed...");
+        loadPosts();
+      }
     },
     (err) => console.log("GPS error:", err.message),
     { enableHighAccuracy: true, maximumAge: 10000 }
@@ -379,6 +388,7 @@ async function createPost() {
 async function loadPosts() {
   if (isLoadingFeed) return;
   isLoadingFeed = true;
+  showSkeletons(); // Show skeletons while loading
 
   try {
     let fetchUrl = `/posts?range=${currentRange}&user=${userId}&_t=${Date.now()}`;
@@ -394,7 +404,11 @@ async function loadPosts() {
     const tempContainer = document.createElement("div");
 
     // Load emergency posts FIRST
+    nearestEmergencyDist = Infinity;
     await loadEmergencyPosts(tempContainer);
+    
+    // Apply proximity glow based on nearest emergency
+    updateProximityGlow();
 
     posts.forEach(post => {
       // Skip private posts, chat type, or room messages from main feed
@@ -462,6 +476,7 @@ async function loadPosts() {
     console.log("Error loading posts:", error);
   } finally {
     isLoadingFeed = false;
+    hideSkeletons();
   }
 }
 
@@ -477,6 +492,16 @@ async function loadEmergencyPosts(container) {
     const emergencyPosts = await response.json();
 
     emergencyPosts.forEach(post => {
+      // 🚨 Filer out stale emergency alerts (older than 1 hour)
+      const postTime = new Date(post.createdAt).getTime();
+      const ageMs = Date.now() - postTime;
+      if (ageMs > 60 * 60 * 1000) return; // Skip if older than 1 hour
+
+      // Track nearest emergency for proximity glow
+      if (post.distance < nearestEmergencyDist) {
+        nearestEmergencyDist = post.distance;
+      }
+
       const filteredText = checkAndCensorMessage(post.text, false);
 
       if (!knownEmergencies.has(post._id)) {
@@ -799,4 +824,100 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   }
+
+  // Setup Pull-to-Refresh
+  setupPullToRefresh();
 });
+
+/* =========================
+   UI HELPERS (Cool/Premium)
+========================= */
+
+function showSkeletons() {
+  const postsContainer = document.getElementById("posts");
+  if (!postsContainer || postsContainer.children.length > 0) return;
+  
+  let skeletons = "";
+  for(let i=0; i<3; i++) {
+    skeletons += `
+      <div class="post skeleton">
+        <div class="skeleton-line" style="width: 80%"></div>
+        <div class="skeleton-line" style="width: 60%"></div>
+        <div class="skeleton-meta"></div>
+      </div>
+    `;
+  }
+  postsContainer.innerHTML = skeletons;
+}
+
+function hideSkeletons() {
+  const skels = document.querySelectorAll(".post.skeleton");
+  skels.forEach(s => s.remove());
+}
+
+function updateProximityGlow() {
+  if (nearestEmergencyDist === Infinity || nearestEmergencyDist > 1000) {
+    document.body.classList.remove("emergency-proximity");
+    document.body.style.setProperty("--proximity-intensity", "0");
+    return;
+  }
+  
+  // Calculate intensity (1.0 at 0m, 0.0 at 1000m)
+  const intensity = Math.max(0, 1 - (nearestEmergencyDist / 1000));
+  document.body.classList.add("emergency-proximity");
+  document.body.style.setProperty("--proximity-intensity", intensity);
+}
+
+/* =========================
+   PULL TO REFRESH logic
+========================= */
+
+let startY = 0;
+let isPulling = false;
+
+function setupPullToRefresh() {
+  const appPage = document.getElementById("appPage");
+  if (!appPage) return;
+
+  appPage.addEventListener("touchstart", (e) => {
+    if (window.scrollY === 0) {
+      startY = e.touches[0].pageY;
+      isPulling = true;
+    }
+  }, { passive: true });
+
+  appPage.addEventListener("touchmove", (e) => {
+    if (!isPulling) return;
+    const y = e.touches[0].pageY;
+    const diff = y - startY;
+    
+    if (diff > 0 && diff < 150) {
+      const ring = document.getElementById("pullToRefreshRing");
+      if (ring) {
+        ring.style.display = "flex";
+        ring.style.opacity = diff / 150;
+        ring.style.transform = `translateY(${diff}px) rotate(${diff * 2}deg)`;
+      }
+    }
+  }, { passive: true });
+
+  appPage.addEventListener("touchend", (e) => {
+    if (!isPulling) return;
+    isPulling = false;
+    
+    const ring = document.getElementById("pullToRefreshRing");
+    if (!ring) return;
+
+    const y = e.changedTouches[0].pageY;
+    if (y - startY > 100) {
+      ring.classList.add("spinning");
+      loadPosts();
+      setTimeout(() => {
+        ring.style.display = "none";
+        ring.classList.remove("spinning");
+      }, 1000);
+    } else {
+      ring.style.display = "none";
+    }
+  });
+}

@@ -520,6 +520,37 @@
       background: #fbbf24;
       transform: scale(1.4);
     }
+    @keyframes ringSpread {
+      0% { width: 100%; height: 100%; opacity: 1; }
+      100% { width: 250%; height: 250%; opacity: 0; }
+    }
+
+    .visual-pulse-ring {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100%;
+      height: 100%;
+      border: 6px solid rgba(239, 68, 68, 0.6);
+      border-radius: 50%;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .hold-circle.holding {
+      animation: heartbeatPulse 0.4s ease-in-out infinite alternate !important;
+    }
+
+    .hold-circle.holding .visual-pulse-ring {
+      animation: ringSpread 1s cubic-bezier(0.24, 0, 0.22, 1) infinite;
+    }
+
+    @keyframes heartbeatPulse {
+      0% { transform: scale(1); box-shadow: 0 0 20px rgba(239, 68, 68, 0.4); }
+      100% { transform: scale(1.08); box-shadow: 0 0 60px rgba(239, 68, 68, 0.8), 0 0 100px rgba(239, 68, 68, 0.4); }
+    }
   </style>
 </head>
 
@@ -550,6 +581,7 @@
     <div class="hold-wrapper">
       <div id="holdCircle" class="hold-circle">
         HOLD
+        <div class="visual-pulse-ring"></div>
       </div>
       <div class="haptic-icon">📳</div>
     </div>
